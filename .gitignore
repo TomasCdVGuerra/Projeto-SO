@@ -1,0 +1,17 @@
+# Git ignore for Projeto-SO
+# Ignore build artifacts and object files
+obj/
+bin/
+
+# Ignore assistant instructions if you want them untracked
+.assistant_instructions.md
+
+# Local change summary (kept untracked)
+.change_summary.txt
+
+# macOS
+.DS_Store
+
+#Project requirements
+.Projeto_SO2526_Parte_I.txt
+Projeto_SO2526_Parte_I.txt
