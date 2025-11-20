@@ -7,7 +7,7 @@ bin/
 .assistant_instructions.md
 
 # Local change summary (kept untracked)
-.change_summary.txt
+ 
 
 # macOS
 .DS_Store
@@ -15,3 +15,10 @@ bin/
 #Project requirements
 .Projeto_SO2526_Parte_I.txt
 Projeto_SO2526_Parte_I.txt
+
+#other
+.change_summery.txt
+change_summery.txt
+
+.CHANGELOG.md
+CHANGELOG.md

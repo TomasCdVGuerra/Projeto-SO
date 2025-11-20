@@ -1,0 +1,88 @@
+Change Summary
+Date: 2025-11-18
+
+Simple, human-readable list of changes made during this session:
+
+1) Added `.assistant_instructions.md` at repository root
+   - Purpose: provide persistent, repo-scoped instructions and preferences for the AI assistant.
+   - Path: `.assistant_instructions.md`
+   - Notes: Contains guidance about coding style, build/test commands, files to avoid, and commit preferences.
+
+2) Created `.gitignore` and added entries
+   - Purpose: avoid tracking build artifacts and sensitive/unwanted files.
+   - Path: `.gitignore`
+   - Entries added: `obj/`, `bin/`, `.assistant_instructions.md`, `.change_summary.txt`, `.DS_Store`
+
+3) Added this summary file and ignored it
+   - Purpose: keep a local, human-readable record of changes without tracking it in git.
+   - Path: `.change_summary.txt`
+
+Notes and next steps
+- If you want any of these files tracked, remove the corresponding entry from `.gitignore` and commit.
+- To commit only `.gitignore` (leave the assistant file untracked):
+  `git add .gitignore && git commit -m "chore: add .gitignore and ignore assistant files"`
+- To commit `.assistant_instructions.md` as well, remove it from `.gitignore` and then add+commit it.
+
+If you'd like more detail (diffs, exact content diffs, or a per-line summary), tell me which files to include.
+
+----------------------------------------
+Additional changes (Date: 2025-11-19)
+
+4) Added POSIX-based loader and integrated CLI directory handling
+   - Purpose: prepare the program to read `*.lvl`, `*.m`, and `*.p` from a directory using POSIX APIs.
+   - Files added: `include/loader.h`, `src/loader.c`
+   - Notes: `loader.c` now scans the provided directory for `.lvl` files, reads files using `open`/`read`, parses `.lvl` and behavior files (.m/.p) into the existing `board_t`, `pacman_t`, and `ghost_t` structs. It exposes `load_next_level()` and `reset_level_iterator()` APIs.
+
+5) Integrated loader initialization and cleanup
+   - Purpose: ensure the program requires a level directory and prepares the loader.
+   - Files modified: `src/game.c`
+   - Notes: `game.c` now requires `./Pacmanist <level_directory>`, initializes the loader at startup (`init_level_loader(argv[1])`) and calls `cleanup_level_loader()` on exit. Remaining integration: replace existing `load_level()` call with `load_next_level()` to use parsed levels.
+
+6) Updated assistant instructions with assignment constraints
+   - Purpose: record project-specific constraints for future assistant sessions.
+   - Files modified: `.assistant_instructions.md`
+   - Notes: Added requirement to update this change-summary file after non-trivial edits; added explicit rules from the project brief (POSIX file APIs only, CLI directory argument, ncurses/thread rules, make/submission expectations).
+
+Notes and next steps
+- The `.change_summary.txt` file is intentionally listed in `.gitignore` so it remains a local audit trail.
+- Next recommended actions:
+  - Replace `load_level(&game_board, ...)` with `load_next_level(&game_board, ...)` in `src/game.c` and handle the "no more levels" case.
+  - Add small example input files under `test_input/` (e.g. `1.lvl`, `1.m`, `1.p`) to validate parsing and run `make` + `./bin/Pacmanist test_input`.
+  - Update this summary after each further non-trivial change.
+
+If you want, I can append more detailed per-file diffs to this summary (or create a separate `CHANGELOG.md` if you'd prefer a tracked record).
+
+----------------------------------------
+Per-file diffs (concise, human-readable)
+
+`include/loader.h` (new)
+- Added declarations:
+   - `int init_level_loader(const char *dirpath);`
+   - `void cleanup_level_loader(void);`
+   - `int loader_is_initialized(void);`
+   - `int load_next_level(board_t *board, int accumulated_points);`
+   - `void reset_level_iterator(void);`
+
+`src/loader.c` (new)
+- New POSIX-based loader implementation. Highlights:
+   - Scans provided directory with `opendir`/`readdir` and collects `*.lvl` files.
+   - Reads files using `open`/`read` (helper `read_file_to_string`).
+   - Parses `.lvl` headers (`DIM`, `TEMPO`, `PAC`, `MON`) and board matrix lines.
+   - Parses `.m`/`.p` behavior files (`PASSO`, `POS`, movement commands, `Tn`).
+   - Populates `board_t`, `pacman_t`, and `ghost_t` structures directly.
+   - Exposes: `init_level_loader`, `load_next_level`, `reset_level_iterator`, `cleanup_level_loader`.
+
+`src/game.c` (modified)
+- Changed CLI handling and loader integration:
+   - Require `./Pacmanist <level_directory>` and exit with error if missing.
+   - Call `init_level_loader(argv[1])` at startup and `cleanup_level_loader()` before exit.
+   - Replaced a TODO placeholder; recommended next change: switch `load_level()` to `load_next_level()`.
+
+`.assistant_instructions.md` (modified)
+- Added requirement to append to `.change_summary.txt` after non-trivial edits.
+- Added project-specific constraints (POSIX I/O only, CLI input dir, ncurses/thread rules, `make`/submission expectations).
+
+`.gitignore` (modified)
+- Added entries: `obj/`, `bin/`, `.assistant_instructions.md`, `.change_summary.txt`, `.DS_Store`.
+
+If you prefer full unified diffs for each file (line-by-line), I can append them here — they will be substantially larger. Alternatively, I can create a tracked `CHANGELOG.md` and put the detailed diffs there.
