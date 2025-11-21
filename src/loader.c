@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <ctype.h>
-#include <stdio.h>
+#include <limits.h>
 
 #define MAX_LEVEL_FILES 128
 
@@ -87,7 +87,12 @@ int init_level_loader(const char *dirpath)
             char *full = malloc(len);
             if (!full)
                 continue;
-            snprintf(full, len, "%s/%s", dirpath, ent->d_name);
+            /* construct path: dirpath + '/' + name + '\0' */
+            char *fp = full;
+            strcpy(fp, dirpath);
+            fp += strlen(dirpath);
+            *fp++ = '/';
+            strcpy(fp, ent->d_name);
             level_paths[level_count++] = full;
         }
     }
@@ -228,7 +233,11 @@ static int parse_behavior(const char *base_dir, const char *filename, int is_pac
     char *path = malloc(len);
     if (!path)
         return -1;
-    snprintf(path, len, "%s/%s", base_dir, filename);
+    char *pp = path;
+    strcpy(pp, base_dir);
+    pp += strlen(base_dir);
+    *pp++ = '/';
+    strcpy(pp, filename);
     char *content = read_file_to_string(path);
     free(path);
     if (!content)
@@ -251,16 +260,33 @@ static int parse_behavior(const char *base_dir, const char *filename, int is_pac
 
         if (strncmp(t, "PASSO", 5) == 0)
         {
-            int v = 0;
-            sscanf(t + 5, "%d", &v);
-            passo = v;
+            const char *q = t + 5;
+            while (*q && isspace((unsigned char)*q))
+                q++;
+            char *endptr = NULL;
+            long v = strtol(q, &endptr, 10);
+            if (endptr != q && v >= INT_MIN && v <= INT_MAX)
+                passo = (int)v;
         }
         else if (strncmp(t, "POS", 3) == 0)
         {
-            int r = 0, c = 0;
-            sscanf(t + 3, "%d %d", &r, &c);
-            pos_r = r;
-            pos_c = c;
+            const char *q = t + 3;
+            while (*q && isspace((unsigned char)*q))
+                q++;
+            char *endptr = NULL;
+            long r = strtol(q, &endptr, 10);
+            if (endptr != q)
+            {
+                q = endptr;
+                while (*q && isspace((unsigned char)*q))
+                    q++;
+                long c = strtol(q, &endptr, 10);
+                if (endptr != q)
+                {
+                    pos_r = (int)r;
+                    pos_c = (int)c;
+                }
+            }
         }
         else
         {
@@ -272,10 +298,14 @@ static int parse_behavior(const char *base_dir, const char *filename, int is_pac
                 cmd.turns_left = 1;
                 if (t[0] == 'T')
                 {
-                    int n = 0;
-                    sscanf(t + 1, "%d", &n);
+                    const char *q = t + 1;
+                    while (*q && isspace((unsigned char)*q))
+                        q++;
+                    char *endptr = NULL;
+                    long n = strtol(q, &endptr, 10);
+                    int ni = (endptr != q && n > 0) ? (int)n : 1;
                     cmd.command = 'T';
-                    cmd.turns = n > 0 ? n : 1;
+                    cmd.turns = ni;
                     cmd.turns_left = cmd.turns;
                 }
                 else
@@ -364,22 +394,46 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
 
         if (strncmp(t, "DIM", 3) == 0)
         {
-            int r = 0, c = 0;
-            sscanf(t + 3, "%d %d", &r, &c);
-            rows = r;
-            cols = c;
+            const char *q = t + 3;
+            while (*q && isspace((unsigned char)*q))
+                q++;
+            char *endptr = NULL;
+            long r = strtol(q, &endptr, 10);
+            if (endptr != q)
+            {
+                q = endptr;
+                while (*q && isspace((unsigned char)*q))
+                    q++;
+                long c = strtol(q, &endptr, 10);
+                if (endptr != q)
+                {
+                    rows = (int)r;
+                    cols = (int)c;
+                }
+            }
         }
         else if (strncmp(t, "TEMPO", 5) == 0)
         {
-            int v = 0;
-            sscanf(t + 5, "%d", &v);
-            tempo = v;
+            const char *q = t + 5;
+            while (*q && isspace((unsigned char)*q))
+                q++;
+            char *endptr = NULL;
+            long v = strtol(q, &endptr, 10);
+            if (endptr != q)
+                tempo = (int)v;
         }
         else if (strncmp(t, "PAC", 3) == 0)
         {
-            char name[MAX_FILENAME];
-            if (sscanf(t + 3, "%s", name) == 1)
-                strncpy(pacfile, name, MAX_FILENAME - 1);
+            const char *q = t + 3;
+            while (*q && isspace((unsigned char)*q))
+                q++;
+            /* copy token */
+            int i = 0;
+            while (*q && !isspace((unsigned char)*q) && i < MAX_FILENAME - 1)
+            {
+                pacfile[i++] = *q++;
+            }
+            pacfile[i] = '\0';
         }
         else if (strncmp(t, "MON", 3) == 0)
         {
