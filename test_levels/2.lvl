@@ -1,0 +1,12 @@
+DIM 7 7
+TEMPO 120
+PAC pacman2.p
+MON ghost1.m ghost2.m
+
+XXXXXXX
+XoooooX
+XoXXXoX
+Xo@oooX
+XoXXXoX
+XoooooX
+XXXXXXX

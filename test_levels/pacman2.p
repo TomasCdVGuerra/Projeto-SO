@@ -1,0 +1,12 @@
+PASSO 0
+POS 1 1
+R
+R
+R
+D
+D
+L
+L
+L
+U
+U
