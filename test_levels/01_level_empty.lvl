@@ -1,5 +1,6 @@
 DIM 5 5
 TEMPO 50
+PAC pacman_01.p
 
 XXXXX
 XoooX

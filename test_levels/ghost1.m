@@ -1,11 +1,11 @@
 PASSO 0
-POS 3 3
-L
-L
-U
-U
-R
-R
+POS 4 1
+A
+A
+C
 D
-D
-T2
+T 2
+W
+S
+S
+S

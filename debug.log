@@ -10,42 +10,48 @@ init_level_loader: found 8 .lvl files
   - test_levels/05_level_maze_large.lvl
   - test_levels/01_level_empty.lvl
 parse_lvl_to_board: parsing 'test_levels/01_level_empty.lvl'
-get_input: raw ch=100
-get_input: mapped to 'D'
 KEY D
 REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
 KEY D
 REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
+KEY D
 REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
+KEY D
+REFRESH
+KEY D
+REFRESH
+KEY D
+REFRESH
+KEY D
+REFRESH
 KEY S
 REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
 KEY S
 REFRESH
-=== [25519] LEVEL INFO ===
+KEY S
+REFRESH
+KEY S
+REFRESH
+KEY S
+REFRESH
+KEY S
+REFRESH
+KEY S
+REFRESH
+KEY S
+REFRESH
+KEY S
+REFRESH
+KEY S
+REFRESH
+KEY S
+REFRESH
+KEY S
+REFRESH
+=== [28508] LEVEL INFO ===
 Dimensions: 5 x 5
 Tempo: 50
-Pacman file: 
+Pacman file: pacman_01.p
 Monster files (0):
 
 === BOARD ===
@@ -56,26 +62,6 @@ W  PW
 WWWWW
 ==================
 parse_lvl_to_board: parsing 'test_levels/02_level_ring.lvl'
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
 get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
@@ -92,7 +78,23 @@ get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
 REFRESH
-=== [25519] LEVEL INFO ===
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+=== [28508] LEVEL INFO ===
 Dimensions: 7 x 7
 Tempo: 80
 Pacman file: 
@@ -108,10 +110,6 @@ W    PW
 WWWWWWW
 ==================
 parse_lvl_to_board: parsing 'test_levels/03_level_maze_small.lvl'
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
@@ -144,7 +142,7 @@ get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
 REFRESH
-=== [25519] LEVEL INFO ===
+=== [28508] LEVEL INFO ===
 Dimensions: 7 x 7
 Tempo: 120
 Pacman file: 
@@ -180,7 +178,7 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-=== [25519] LEVEL INFO ===
+=== [28508] LEVEL INFO ===
 Dimensions: 8 x 10
 Tempo: 150
 Pacman file: 
@@ -201,6 +199,10 @@ get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
 REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
 get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
@@ -277,7 +279,7 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-=== [25519] LEVEL INFO ===
+=== [28508] LEVEL INFO ===
 Dimensions: 10 x 15
 Tempo: 200
 Pacman file: 
@@ -304,27 +306,11 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
-REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
-REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
-=== [25519] LEVEL INFO ===
+=== [28508] LEVEL INFO ===
 Dimensions: 6 x 8
 Tempo: 100
 Pacman file: 
@@ -343,3 +329,401 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+=== [28508] LEVEL INFO ===
+Dimensions: 5 x 7
+Tempo: 100
+Pacman file: 
+Monster files (0):
+
+=== BOARD ===
+WWWWWWW
+W   P W
+W WWW W
+W     W
+WWWWWWW
+==================
+parse_lvl_to_board: parsing 'test_levels/08_level_with_ghost.lvl'
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+=== [28508] LEVEL INFO ===
+Dimensions: 7 x 9
+Tempo: 120
+Pacman file: 
+Monster files (1):
+  - ghost1.m
+
+=== BOARD ===
+WWWWWWWWW
+W        
+W       W
+W       W
+W       W
+W    M PW
+WWWWWWWWW
+==================
