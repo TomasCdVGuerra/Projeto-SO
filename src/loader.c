@@ -34,11 +34,47 @@ static int has_suffix(const char *name, const char *suf)
     return strcmp(name + n - m, suf) == 0;
 }
 
-static int cmpstr(const void *a, const void *b)
+/* Compare two level paths by optional numeric prefix in the basename.
+ * If both basenames start with a number, compare numerically; otherwise
+ * fall back to lexicographic compare of the basename.
+ */
+static int cmp_level_paths(const void *a, const void *b)
 {
     const char *A = *(const char **)a;
     const char *B = *(const char **)b;
-    return strcmp(A, B);
+
+    /* get basenames (after last '/') */
+    const char *ba = strrchr(A, '/');
+    const char *bb = strrchr(B, '/');
+    ba = ba ? ba + 1 : A;
+    bb = bb ? bb + 1 : B;
+
+    /* try parse leading integers */
+    char *endptr;
+    long na = strtol(ba, &endptr, 10);
+    int a_has_num = (endptr != ba);
+    char *endptr2;
+    long nb = strtol(bb, &endptr2, 10);
+    int b_has_num = (endptr2 != bb);
+
+    if (a_has_num && b_has_num)
+    {
+        if (na < nb)
+            return -1;
+        if (na > nb)
+            return 1;
+        /* equal numeric prefix: fall back to strcmp on whole basename */
+        return strcmp(ba, bb);
+    }
+
+    /* If only one has a number, put the numbered one first */
+    if (a_has_num && !b_has_num)
+        return -1;
+    if (!a_has_num && b_has_num)
+        return 1;
+
+    /* neither have numbers: lexicographic compare of basenames */
+    return strcmp(ba, bb);
 }
 
 int init_level_loader(const char *dirpath)
@@ -60,6 +96,9 @@ int init_level_loader(const char *dirpath)
     DIR *d = opendir(dirpath);
     if (!d)
         return -errno;
+
+    /* Log which directory we are scanning for debugging */
+    debug("init_level_loader: scanning dir '%s'\n", dirpath);
 
     /* Save a copy of the directory */
     loader_dir = strdup(dirpath);
@@ -98,6 +137,13 @@ int init_level_loader(const char *dirpath)
     }
     closedir(d);
 
+    /* Report discovered levels to debug log */
+    debug("init_level_loader: found %d .lvl files\n", level_count);
+    for (int i = 0; i < level_count; i++)
+    {
+        debug("  - %s\n", level_paths[i]);
+    }
+
     if (level_count == 0)
     {
         /* no levels found */
@@ -106,8 +152,8 @@ int init_level_loader(const char *dirpath)
         return -2;
     }
 
-    /* sort level paths lexicographically */
-    qsort(level_paths, level_count, sizeof(char *), cmpstr);
+    /* sort level paths by numeric prefix if present, otherwise lexicographically */
+    qsort(level_paths, level_count, sizeof(char *), cmp_level_paths);
 
     initialized = 1;
     current_level = 0;
@@ -368,6 +414,8 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
     if (!content)
         return -1;
 
+    debug("parse_lvl_to_board: parsing '%s'\n", lvlpath);
+
     /* Initialize defaults */
     int rows = 0, cols = 0;
     int tempo = 0;
@@ -459,6 +507,7 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
 
     if (rows == 0 || cols == 0 || matrix_lines_count == 0)
     {
+        debug("parse_lvl_to_board: invalid level - rows=%d cols=%d matrix_lines=%d\n", rows, cols, matrix_lines_count);
         /* invalid level */
         for (int i = 0; i < matrix_lines_count; i++)
             free(matrix_lines[i]);

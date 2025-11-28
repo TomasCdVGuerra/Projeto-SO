@@ -164,11 +164,23 @@ char get_input()
     // Get a character from the keyboard
     int ch = getch();
 
+    debug("get_input: raw ch=%d\n", ch);
+
     // getch() returns ERR if no input is available
     if (ch == ERR)
     {
         return '\0'; // No input
     }
+
+    /* Map arrow keys to WASD for convenience */
+    if (ch == KEY_UP)
+        return 'W';
+    if (ch == KEY_DOWN)
+        return 'S';
+    if (ch == KEY_LEFT)
+        return 'A';
+    if (ch == KEY_RIGHT)
+        return 'D';
 
     ch = toupper((char)ch);
 
@@ -181,6 +193,7 @@ char get_input()
     case 'Q':
     case 'G':
     case 'L':
+        debug("get_input: mapped to '%c'\n", (char)ch);
         return (char)ch;
 
     default:

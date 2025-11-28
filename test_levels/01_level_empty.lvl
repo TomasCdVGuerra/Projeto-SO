@@ -1,9 +1,8 @@
 DIM 5 5
-TEMPO 100
-PAC pacman.p
+TEMPO 50
 
 XXXXX
 XoooX
-Xo@oX
 XoooX
+Xoo@X
 XXXXX

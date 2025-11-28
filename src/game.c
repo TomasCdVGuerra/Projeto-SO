@@ -125,6 +125,9 @@ int play_board(board_t *game_board)
 
 int main(int argc, char **argv)
 {
+    /* Open debug file early so initial logs are captured */
+    open_debug_file("debug.log");
+    debug("main: argc=%d argv1=%s\n", argc, (argc > 1 ? argv[1] : "(null)"));
     /* Backward-compatible CLI: if no directory argument is provided, run the
      * legacy behaviour (use `load_level()`). If a directory is provided, try
      * to initialize the POSIX loader and use `load_next_level()` instead.
@@ -154,8 +157,6 @@ int main(int argc, char **argv)
 
     // Random seed for any random movements
     srand((unsigned int)time(NULL));
-
-    open_debug_file("debug.log");
 
     terminal_init();
 
