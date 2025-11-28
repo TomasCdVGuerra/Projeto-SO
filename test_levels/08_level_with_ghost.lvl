@@ -1,11 +1,11 @@
-DIM 9 7
+DIM 7 9
 TEMPO 120
 MON ghost1.m
 
 XXXXXXXXX
-XoooXoooo
-XoXXXoXoX
-XoXoMoXoX
-XoXXXoXoX
-Xoooo@XoX
+Xoooooooo
+XoooooooX
+XoooMoooX
+XoooooooX
+Xoooooo@X
 XXXXXXXXX
