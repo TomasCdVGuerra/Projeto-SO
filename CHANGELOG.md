@@ -97,6 +97,21 @@ Additional changes (Date: 2025-11-21)
   - Actions: ran `make` with `-std=c17 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -Werror` and confirmed final link succeeded producing `bin/Pacmanist`.
   - Notes: resolved minor signed/unsigned comparison warnings and missing `string.h` includes during the conversion.
 
+---
+
+Additional changes (Date: 2025-12-07)
+
+11) Quicksave/Quickload logic aligned with exercise and instructor clarifications
+  - Purpose: make quicksave single-use (fork-held state is consumed on load) and allow new saves after a load, while preserving crash-free resume.
+  - Files modified: `src/game.c`
+  - Notes:
+    - Pressing 'G' when a save exists now does nothing; after loading or death-triggered restore the saved child exits and the slot clears, allowing a new save.
+    - Quickload wakes the saved child, reads state through a pipe, waits for the child to exit, refreshes the screen, and clears `saved_pid`/pipe.
+    - Pacman death now auto-restores from the saved state when available; otherwise game over is shown.
+
+12) Consistency and build
+  - Purpose: keep build passing after quicksave logic changes.
+
 Next recommended actions
 - Commit the changelog update and the recent code changes (if not already committed).
 - Optionally extend the debug formatter if you plan to use more complex format specifiers in debug output.

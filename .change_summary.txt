@@ -86,3 +86,17 @@ Per-file diffs (concise, human-readable)
 - Added entries: `obj/`, `bin/`, `.assistant_instructions.md`, `.change_summary.txt`, `.DS_Store`.
 
 If you prefer full unified diffs for each file (line-by-line), I can append them here — they will be substantially larger. Alternatively, I can create a tracked `CHANGELOG.md` and put the detailed diffs there.
+
+----------------------------------------
+Additional changes (Date: 2025-12-07)
+
+11) Quicksave/Quickload flow updated (single-use saves)
+   - Purpose: match exercise/instructor guidance: a saved state is consumed on load, allowing a new save afterward.
+   - Files modified: `src/game.c`
+   - Notes:
+     - Pressing 'G' while a save exists does nothing; after load or death-restore the saved child exits and the slot clears.
+     - Quickload resumes the saved child, streams state through a pipe, waits for the child to exit, clears `saved_pid`/pipe, and refreshes the screen.
+     - Pacman death now auto-restores from the saved state if present; otherwise shows game over.
+
+12) Build
+   - Purpose: verify the updated flow builds cleanly.
