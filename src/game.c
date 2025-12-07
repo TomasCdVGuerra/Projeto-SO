@@ -312,20 +312,110 @@ int main(int argc, char **argv)
                 /* Allocate and read dynamic arrays */
                 int board_size = game_board.width * game_board.height;
                 game_board.board = malloc(board_size * sizeof(board_pos_t));
-                read(saved_pipe_fd, game_board.board, board_size * sizeof(board_pos_t));
+                if (!game_board.board)
+                {
+                    debug("Quickload: malloc failed for board\n");
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
+                    continue;
+                }
+                if (read(saved_pipe_fd, game_board.board, board_size * sizeof(board_pos_t)) != (ssize_t)(board_size * sizeof(board_pos_t)))
+                {
+                    debug("Quickload: failed to read board data\n");
+                    free(game_board.board);
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
+                    continue;
+                }
 
                 game_board.pacmans = malloc(game_board.n_pacmans * sizeof(pacman_t));
-                read(saved_pipe_fd, game_board.pacmans, game_board.n_pacmans * sizeof(pacman_t));
+                if (!game_board.pacmans)
+                {
+                    debug("Quickload: malloc failed for pacmans\n");
+                    free(game_board.board);
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
+                    continue;
+                }
+                if (read(saved_pipe_fd, game_board.pacmans, game_board.n_pacmans * sizeof(pacman_t)) != (ssize_t)(game_board.n_pacmans * sizeof(pacman_t)))
+                {
+                    debug("Quickload: failed to read pacmans data\n");
+                    free(game_board.board);
+                    free(game_board.pacmans);
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
+                    continue;
+                }
 
                 game_board.ghosts = malloc(game_board.n_ghosts * sizeof(ghost_t));
-                read(saved_pipe_fd, game_board.ghosts, game_board.n_ghosts * sizeof(ghost_t));
+                if (!game_board.ghosts)
+                {
+                    debug("Quickload: malloc failed for ghosts\n");
+                    free(game_board.board);
+                    free(game_board.pacmans);
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
+                    continue;
+                }
+                if (read(saved_pipe_fd, game_board.ghosts, game_board.n_ghosts * sizeof(ghost_t)) != (ssize_t)(game_board.n_ghosts * sizeof(ghost_t)))
+                {
+                    debug("Quickload: failed to read ghosts data\n");
+                    free(game_board.board);
+                    free(game_board.pacmans);
+                    free(game_board.ghosts);
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
+                    continue;
+                }
 
                 /* Read accumulated points */
-                read(saved_pipe_fd, &accumulated_points, sizeof(int));
+                if (read(saved_pipe_fd, &accumulated_points, sizeof(int)) != sizeof(int))
+                {
+                    debug("Quickload: failed to read accumulated_points\n");
+                    free(game_board.board);
+                    free(game_board.pacmans);
+                    free(game_board.ghosts);
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
+                    continue;
+                }
 
                 /* Read current level index */
                 int lvl;
-                read(saved_pipe_fd, &lvl, sizeof(int));
+                if (read(saved_pipe_fd, &lvl, sizeof(int)) != sizeof(int))
+                {
+                    debug("Quickload: failed to read level index\n");
+                    free(game_board.board);
+                    free(game_board.pacmans);
+                    free(game_board.ghosts);
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
+                    continue;
+                }
                 set_current_level(lvl);
 
                 /* Wait for child to exit */

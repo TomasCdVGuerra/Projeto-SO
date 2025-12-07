@@ -275,6 +275,13 @@ static char *trim(char *s)
  */
 static int parse_behavior(const char *base_dir, const char *filename, int is_pacman, void *target)
 {
+    /* Security: validate filename doesn't contain path separators */
+    if (strchr(filename, '/') != NULL || strchr(filename, '\\') != NULL)
+    {
+        debug("parse_behavior: rejecting filename with path separators: %s\n", filename);
+        return -1;
+    }
+
     size_t len = strlen(base_dir) + 1 + strlen(filename) + 1;
     char *path = malloc(len);
     if (!path)
@@ -311,7 +318,8 @@ static int parse_behavior(const char *base_dir, const char *filename, int is_pac
                 q++;
             char *endptr = NULL;
             long v = strtol(q, &endptr, 10);
-            if (endptr != q && v >= INT_MIN && v <= INT_MAX)
+            /* Validate PASSO is reasonable (0-1000) */
+            if (endptr != q && v >= 0 && v <= 1000)
                 passo = (int)v;
         }
         else if (strncmp(t, "POS", 3) == 0)
@@ -369,6 +377,11 @@ static int parse_behavior(const char *base_dir, const char *filename, int is_pac
                     g->moves[move_idx] = cmd;
                 }
                 move_idx++;
+            }
+            else
+            {
+                /* Log when moves exceed MAX_MOVES */
+                debug("parse_behavior: move count exceeded MAX_MOVES (%d), truncating\n", MAX_MOVES);
             }
         }
 
@@ -468,7 +481,13 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
             char *endptr = NULL;
             long v = strtol(q, &endptr, 10);
             if (endptr != q)
-                tempo = (int)v;
+            {
+                /* Validate tempo is reasonable (0-10000 ms) */
+                if (v >= 0 && v <= 10000)
+                    tempo = (int)v;
+                else
+                    debug("parse_lvl_to_board: ignoring invalid TEMPO value: %d\n", (int)v);
+            }
         }
         else if (strncmp(t, "PAC", 3) == 0)
         {
@@ -508,7 +527,27 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
         {
             /* matrix line */
             char *copy = strdup(t);
-            matrix_lines = realloc(matrix_lines, sizeof(char *) * (matrix_lines_count + 1));
+            if (!copy)
+            {
+                /* Out of memory: cleanup and abort */
+                for (int i = 0; i < matrix_lines_count; i++)
+                    free(matrix_lines[i]);
+                free(matrix_lines);
+                free(content);
+                return -1;
+            }
+            char **new_matrix = realloc(matrix_lines, sizeof(char *) * (matrix_lines_count + 1));
+            if (!new_matrix)
+            {
+                /* realloc failed: cleanup including the new copy */
+                free(copy);
+                for (int i = 0; i < matrix_lines_count; i++)
+                    free(matrix_lines[i]);
+                free(matrix_lines);
+                free(content);
+                return -1;
+            }
+            matrix_lines = new_matrix;
             matrix_lines[matrix_lines_count++] = copy;
         }
 
@@ -533,9 +572,52 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
     board->n_pacmans = 1;
     board->n_ghosts = mon_count;
 
+    /* Validate dimensions to prevent integer overflow */
+    if (rows < 0 || cols < 0 || rows > 1000 || cols > 1000)
+    {
+        debug("parse_lvl_to_board: invalid dimensions - rows=%d cols=%d\n", rows, cols);
+        for (int i = 0; i < matrix_lines_count; i++)
+            free(matrix_lines[i]);
+        free(matrix_lines);
+        free(content);
+        return -1;
+    }
+
     board->board = calloc(board->width * board->height, sizeof(board_pos_t));
+    if (!board->board)
+    {
+        debug("parse_lvl_to_board: calloc failed for board\n");
+        for (int i = 0; i < matrix_lines_count; i++)
+            free(matrix_lines[i]);
+        free(matrix_lines);
+        free(content);
+        return -1;
+    }
+
     board->pacmans = calloc(board->n_pacmans, sizeof(pacman_t));
+    if (!board->pacmans)
+    {
+        debug("parse_lvl_to_board: calloc failed for pacmans\n");
+        free(board->board);
+        for (int i = 0; i < matrix_lines_count; i++)
+            free(matrix_lines[i]);
+        free(matrix_lines);
+        free(content);
+        return -1;
+    }
+
     board->ghosts = calloc(board->n_ghosts, sizeof(ghost_t));
+    if (!board->ghosts)
+    {
+        debug("parse_lvl_to_board: calloc failed for ghosts\n");
+        free(board->board);
+        free(board->pacmans);
+        for (int i = 0; i < matrix_lines_count; i++)
+            free(matrix_lines[i]);
+        free(matrix_lines);
+        free(content);
+        return -1;
+    }
 
     /* initialize board positions */
     for (int y = 0; y < rows; y++)
