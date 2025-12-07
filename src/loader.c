@@ -318,8 +318,8 @@ static int parse_behavior(const char *base_dir, const char *filename, int is_pac
                 q++;
             char *endptr = NULL;
             long v = strtol(q, &endptr, 10);
-            /* Validate PASSO is reasonable (0-1000) */
-            if (endptr != q && v >= 0 && v <= 1000)
+            /* Validate PASSO is reasonable */
+            if (endptr != q && v >= 0 && v <= MAX_PASSO_VALUE)
                 passo = (int)v;
         }
         else if (strncmp(t, "POS", 3) == 0)
@@ -482,8 +482,8 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
             long v = strtol(q, &endptr, 10);
             if (endptr != q)
             {
-                /* Validate tempo is reasonable (0-10000 ms) */
-                if (v >= 0 && v <= 10000)
+                /* Validate tempo is reasonable */
+                if (v >= 0 && v <= MAX_TEMPO_MS)
                     tempo = (int)v;
                 else
                     debug("parse_lvl_to_board: ignoring invalid TEMPO value: %d\n", (int)v);
@@ -573,7 +573,7 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
     board->n_ghosts = mon_count;
 
     /* Validate dimensions to prevent integer overflow */
-    if (rows < 0 || cols < 0 || rows > 1000 || cols > 1000)
+    if (rows < 0 || cols < 0 || rows > MAX_BOARD_DIMENSION || cols > MAX_BOARD_DIMENSION)
     {
         debug("parse_lvl_to_board: invalid dimensions - rows=%d cols=%d\n", rows, cols);
         for (int i = 0; i < matrix_lines_count; i++)
