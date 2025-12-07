@@ -109,6 +109,11 @@ Additional changes (Date: 2025-12-07)
     - Quickload wakes the saved child, reads state through a pipe, waits for the child to exit, refreshes the screen, and clears `saved_pid`/pipe.
     - Pacman death now auto-restores from the saved state when available; otherwise game over is shown.
 
+12) Enforce MAX_GHOSTS per level
+  - Purpose: prevent overflow and match instructor guidance (MAX_GHOSTS = maximum ghosts per level).
+  - Files modified: `src/loader.c`
+  - Notes: level parsing now errors if a `.lvl` lists more than `MAX_GHOSTS` monsters, avoiding writes past `ghosts_files` and keeping `board->n_ghosts` bounded.
+
 12) Consistency and build
   - Purpose: keep build passing after quicksave logic changes.
 

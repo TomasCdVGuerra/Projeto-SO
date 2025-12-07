@@ -25,7 +25,6 @@ Notes and next steps
 
 If you'd like more detail (diffs, exact content diffs, or a per-line summary), tell me which files to include.
 
-----------------------------------------
 Additional changes (Date: 2025-11-19)
 
 4) Added POSIX-based loader and integrated CLI directory handling
@@ -39,6 +38,14 @@ Additional changes (Date: 2025-11-19)
    - Notes: `game.c` now requires `./Pacmanist <level_directory>`, initializes the loader at startup (`init_level_loader(argv[1])`) and calls `cleanup_level_loader()` on exit. Remaining integration: replace existing `load_level()` call with `load_next_level()` to use parsed levels.
 
 6) Updated assistant instructions with assignment constraints
+
+----------------------------------------
+Additional changes (Date: 2025-12-07)
+
+13) Enforce MAX_GHOSTS per level
+    - Purpose: prevent overflow and align with instructor guidance (MAX_GHOSTS = max ghosts per level).
+    - Files modified: `src/loader.c`
+    - Notes: parsing now fails with an error if a `.lvl` lists more than `MAX_GHOSTS` monsters, avoiding writes past `ghosts_files` and bounding `board->n_ghosts`.
    - Purpose: record project-specific constraints for future assistant sessions.
    - Files modified: `.assistant_instructions.md`
    - Notes: Added requirement to update this change-summary file after non-trivial edits; added explicit rules from the project brief (POSIX file APIs only, CLI directory argument, ncurses/thread rules, make/submission expectations).

@@ -488,8 +488,18 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
             /* parse multiple filenames */
             char *p = t + 3;
             char *tok = strtok_r(p, " \t", &p);
-            while (tok && mon_count < MAX_GHOSTS)
+            while (tok)
             {
+                if (mon_count >= MAX_GHOSTS)
+                {
+                    debug("parse_lvl_to_board: too many ghosts (>%d) in level '%s'\n", MAX_GHOSTS, lvlpath);
+                    /* hard error: free and abort parsing */
+                    for (int i = 0; i < matrix_lines_count; i++)
+                        free(matrix_lines[i]);
+                    free(matrix_lines);
+                    free(content);
+                    return -1;
+                }
                 strncpy(monfiles[mon_count++], tok, MAX_FILENAME - 1);
                 tok = strtok_r(NULL, " \t", &p);
             }
