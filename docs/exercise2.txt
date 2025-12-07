@@ -1,0 +1,215 @@
+Exercise 2 – Reencarnação do Pacman (Quicksave/Quickload via fork)
+
+OVERVIEW
+Exercise 2 adds quicksave/quickload using fork() to capture and restore game state, allowing the player to resume after death.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP-BY-STEP IMPLEMENTATION
+
+Step 1: Add quicksave trigger ('G' key)
+  File: `src/game.c` in `play_board()` function
+  
+  What:
+  - Check if user pressed 'G' (only from manual input, not scripted moves)
+  - Return special code `CREATE_BACKUP` to main loop
+  
+  Why:
+  - 'G' triggers save; must distinguish from other commands
+  - Only manual input can save (prevent accidental saves from .p files)
+
+Step 2: Fork to create saved state
+  File: `src/game.c` in main loop, handling `CREATE_BACKUP`
+  
+  What:
+  - Check if `saved_pid != 0` (existing save):
+    - If yes: do nothing (ignore the 'G'), continue game
+    - If no: proceed to create save
+  - Create pipe with `pipe(pfd)` for later communication
+  - Call `fork()`:
+    - Parent gets child's PID
+    - Child gets 0
+  - Store child PID in `saved_pid`
+  - Store read end of pipe in `saved_pipe_fd`
+  
+  Why:
+  - Assignment requires only 1 save at a time
+  - fork() creates process with identical memory (board, entities, score)
+  - Pipe will be used later for child to send state back
+
+Step 3: Suspend child to hold state
+  File: `src/game.c` child branch after fork
+  
+  What:
+  - Child closes read end of pipe (won't need it)
+  - Child calls `raise(SIGSTOP)` to suspend itself
+  - Execution stops here until parent sends SIGCONT
+  
+  Why:
+  - SIGSTOP freezes the child with saved game state in memory
+  - No CPU usage while suspended
+  - Child's memory is Copy-On-Write from parent (cheap snapshot)
+
+Step 4: Parent continues playing
+  File: `src/game.c` parent branch after fork
+  
+  What:
+  - Parent closes write end of pipe
+  - Parent stores child PID and pipe read end
+  - Parent continues game loop normally
+  
+  Why:
+  - Game doesn't pause when saving
+  - Parent can die/advance levels while child holds old state
+
+Step 5: Add quickload trigger ('L' key and death)
+  File: `src/game.c`
+  
+  What:
+  - In `play_board()`: if 'L' pressed, return `LOAD_BACKUP`
+  - In `play_board()`: change death to return `DEAD_PACMAN` (not QUIT_GAME)
+  - In main loop: handle `DEAD_PACMAN`:
+    - If saved_pid exists: jump to load logic
+    - Else: show game over and quit
+  
+  Why:
+  - 'L' is manual load trigger
+  - Death auto-loads if save exists (per assignment)
+  - Need to distinguish death from manual quit ('Q')
+
+Step 6: Wake child and receive state
+  File: `src/game.c` in main loop, handling `LOAD_BACKUP`
+  
+  What:
+  - Check if `saved_pid == 0`:
+    - If yes: no save exists, just continue
+  - Send `SIGCONT` to child with `kill(saved_pid, SIGCONT)`
+  - Child wakes up at the point after `raise(SIGSTOP)`
+  
+  Why:
+  - SIGCONT resumes child execution
+  - Child will now write saved state to pipe
+
+Step 7: Child writes state to pipe
+  File: `src/game.c` child code after wake
+  
+  What:
+  - Write board struct: `write(pfd[1], &game_board, sizeof(board_t))`
+  - Write board array: `write(pfd[1], game_board.board, width*height*sizeof(board_pos_t))`
+  - Write pacmans array: `write(pfd[1], game_board.pacmans, n_pacmans*sizeof(pacman_t))`
+  - Write ghosts array: `write(pfd[1], game_board.ghosts, n_ghosts*sizeof(ghost_t))`
+  - Write accumulated_points: `write(pfd[1], &accumulated_points, sizeof(int))`
+  - Write current_level: `write(pfd[1], &lvl, sizeof(int))`
+  - Close pipe write end
+  - Call `_exit(0)` to terminate
+  
+  Why:
+  - Pipe is IPC channel from child to parent
+  - Must send struct + all dynamic arrays separately
+  - _exit() avoids flushing parent's stdio buffers (if any)
+
+Step 8: Parent reads state from pipe
+  File: `src/game.c` parent load logic
+  
+  What:
+  - Read board struct into temp variable
+  - Call `unload_level(&game_board)` to free current level
+  - Copy temp board struct to `game_board`
+  - Allocate new arrays:
+    - `game_board.board = malloc(width*height*sizeof(...))`
+    - `game_board.pacmans = malloc(...)`
+    - `game_board.ghosts = malloc(...)`
+  - Read each array from pipe into new allocations
+  - Read accumulated_points
+  - Read level index, call `set_current_level(lvl)`
+  
+  Why:
+  - board_t contains pointers; can't just copy struct
+  - Must free old arrays to avoid memory leak
+  - Allocate new arrays, then populate from pipe data
+
+Step 9: Clean up saved child
+  File: `src/game.c` parent after reading state
+  
+  What:
+  - Call `waitpid(saved_pid, NULL, 0)` to reap child
+  - Close pipe read end: `close(saved_pipe_fd)`
+  - Set `saved_pid = 0` (slot now free)
+  - Set `saved_pipe_fd = -1`
+  
+  Why:
+  - waitpid() prevents zombie process
+  - Close pipe since child exited
+  - Clear saved_pid so new 'G' can create new save
+
+Step 10: Refresh screen after load
+  File: `src/game.c` after state restore
+  
+  What:
+  - Call `screen_refresh(&game_board, DRAW_MENU)`
+  
+  Why:
+  - User sees restored state immediately
+  - Without this, screen shows old state until next move
+
+Step 11: Add cleanup on exit
+  File: `src/game.c` at end of main()
+  
+  What:
+  - Before `terminal_cleanup()`:
+    - If `saved_pid != 0`:
+      - Send `kill(saved_pid, SIGKILL)` to force-kill child
+      - Call `waitpid(saved_pid, NULL, 0)` to reap it
+      - Close `saved_pipe_fd` if open
+  
+  Why:
+  - If program exits with a suspended child, it becomes orphan
+  - Clean shutdown: kill and reap before ncurses cleanup
+
+Step 12: Test quicksave flow
+  What:
+  - Run game, move pacman
+  - Press 'G' to save
+  - Move more, press 'G' again (should do nothing)
+  - Press 'L' to load (should jump back)
+  - Die to ghost (should auto-restore if save exists)
+  - Press 'G' after load (should work, creates new save)
+  
+  Why:
+  - Verify single-save enforcement
+  - Verify load restores position/state
+  - Verify death-restore
+  - Verify save slot clears after use
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WHY THIS APPROACH
+
+Technical decisions:
+- Fork vs malloc copy: Assignment explicitly requires fork(); child holds full process image
+- SIGSTOP/SIGCONT: Simple process control without custom handlers
+- Pipe for state transfer: Clean IPC; child writes, parent reads serialized data
+- Parent stays foreground: Avoids terminal/ncurses pgid issues seen if child took over
+- Single-use save: After load, child exits; must save again (per instructor clarification)
+- Auto-restore on death: Assignment implies this ("jogo será reiniciado a partir do estado guardado")
+
+Data channel design:
+- Why pipe: Reliable byte stream, blocks until data ready
+- Why serialize: Can't share pointers across processes; must copy all heap data
+- Order matters: Read must match write order (struct, then arrays)
+
+Process lifecycle:
+- Child created → stopped → woken → writes → exits → reaped
+- Parent creates → plays → loads → reads → waits → continues
+- Clean: No zombie, no orphan, no leaked file descriptors
+
+Assignment requirements met:
+✓ Uses fork() to save state
+✓ Only 1 save at a time (ignore 'G' if save exists)
+✓ Restores on death if save exists
+✓ Manual load via 'L' key
+✓ Save slot clears after use (can save again)
+
+Why it was done:
+- To satisfy Exercise 2: use `fork()` to capture/restore game state, maintain only one backup, and resume after death via the saved snapshot.
+- To avoid terminal/ncurses issues seen when handing terminal control back to the child; the parent remains the interactive process, and the child only streams memory then exits.

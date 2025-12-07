@@ -1,0 +1,208 @@
+Exercise 1 – File System Integration (POSIX I/O)
+
+OVERVIEW
+Exercise 1 transforms the game from using a single hardcoded level to loading multiple levels and behaviors from files using POSIX I/O (no stdio.h).
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP-BY-STEP IMPLEMENTATION
+
+Step 1: Create the loader module
+  Files: `include/loader.h`, `src/loader.c`
+  
+  What:
+  - Created header declaring: `init_level_loader()`, `cleanup_level_loader()`, 
+    `load_next_level()`, `get_current_level()`, `set_current_level()`
+  - Implemented static state to track: directory path, array of level file paths,
+    current level index, initialization flag
+  
+  Why:
+  - Encapsulate all file I/O logic in one module
+  - Provide clean API for game loop to request levels sequentially
+
+Step 2: Scan directory for .lvl files
+  Function: `init_level_loader(const char *dirpath)`
+  
+  What:
+  - Used `opendir(dirpath)` to open the directory
+  - Loop `readdir()` to get each entry
+  - Filter entries: check if name ends with `.lvl` using string suffix check
+  - Store matching paths (dir + "/" + name) in `level_paths[]` array
+  - Sort paths numerically by optional prefix (e.g., "1.lvl" < "10.lvl" < "2.lvl")
+  - Cap at `MAX_LEVELS` (20)
+  - Close directory with `closedir()`
+  
+  Why:
+  - Assignment requires reading from a directory specified on CLI
+  - Sorting ensures predictable level order for multi-level gameplay
+  - Ignoring non-.lvl files makes the loader robust to extra files
+
+Step 3: Read file contents using POSIX I/O
+  Helper: `read_file_to_string(const char *filepath)`
+  
+  What:
+  - Used `open(filepath, O_RDONLY)` to get file descriptor
+  - Called `fstat()` to get file size
+  - Allocated buffer of size+1 for content
+  - Loop `read(fd, buffer, remaining)` until all bytes read
+  - Null-terminate the buffer
+  - Close with `close(fd)`
+  
+  Why:
+  - Assignment forbids stdio (fopen/fread); must use POSIX descriptors
+  - Reading entire file into memory simplifies parsing (files are small)
+
+Step 4: Parse .lvl file structure
+  Function: `parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulated_points)`
+  
+  What:
+  - Read file content to string
+  - Tokenize by newlines using `strtok_r()`
+  - For each line:
+    a) Trim whitespace
+    b) Skip if empty or starts with '#' (comment)
+    c) Check prefix:
+       - "DIM": parse two integers (rows, cols) using `strtol()`
+       - "TEMPO": parse one integer (ms per turn) using `strtol()`
+       - "PAC": extract filename (optional)
+       - "MON": extract space-separated list of filenames
+       - Otherwise: treat as matrix row, store pointer to line
+  - Validate: rows > 0, cols > 0, matrix_lines > 0
+  
+  Why:
+  - .lvl format has headers then matrix; parsing sequentially is natural
+  - strtol() is POSIX-compliant; no sscanf() (which is stdio)
+  - Storing matrix lines as pointers defers parsing until dimensions known
+
+Step 5: Build the board array
+  Still in: `parse_lvl_to_board()`
+  
+  What:
+  - Allocate `board->board` as `calloc(width * height, sizeof(board_pos_t))`
+  - Allocate `board->pacmans` (always 1) and `board->ghosts` (count from MON)
+  - Loop through matrix lines:
+    - For each character at (x,y):
+      - 'X' → set content='W' (wall)
+      - 'o' → set content=' ', has_dot=1 (collectible dot)
+      - '@' → set content=' ', has_portal=1 (level exit)
+      - else → default to empty
+  - Set board width, height, tempo from parsed values
+  
+  Why:
+  - Board stored as 1D row-major array for cache efficiency
+  - Dots/portal are flags on positions, not separate entities
+  - Walls block movement; portal triggers level advance
+
+Step 6: Parse behavior files (.m / .p)
+  Function: `parse_behavior(const char *dir, const char *filename, int is_pacman, void *entity)`
+  
+  What:
+  - Construct full path: dir + "/" + filename
+  - Read file to string, tokenize by newlines
+  - For each line:
+    a) Skip comments/empty
+    b) "PASSO N": set entity->passo = N (turns to wait between moves)
+    c) "POS row col": set entity->pos_x = col, entity->pos_y = row
+    d) Command line (W/A/S/D/R/C/Tn):
+       - If starts with 'T', parse number after it for wait turns
+       - Store command in entity->moves[move_idx++]
+       - Cap at MAX_MOVES (20) to prevent overflow
+  - Set entity->n_moves = move_idx (0 means manual control)
+  
+  Why:
+  - PASSO controls pacing (ghost waits N turns before each action)
+  - POS places entity on board at start
+  - Commands are cyclic: when entity reaches last move, wraps to first
+  - Tn command pauses entity for n turns
+  - MAX_MOVES limit prevents buffer overflow
+
+Step 7: Place entities on board
+  Back in: `parse_lvl_to_board()` after parsing behaviors
+  
+  What:
+  - If PAC file exists:
+    - Parse it with `parse_behavior(..., 1, &board->pacmans[0])`
+    - Place 'P' at pacman's pos_x, pos_y
+  - Else:
+    - Default pacman to (1,1), n_moves=0 (manual), place 'P'
+  - For each ghost (mon_count):
+    - Parse .m file with `parse_behavior(..., 0, &board->ghosts[i])`
+    - Place 'M' at ghost's pos_x, pos_y
+  
+  Why:
+  - Pacman is optional scripted; if no .p, user controls it
+  - Ghosts always scripted from .m files
+  - Board content array tracks current occupants for collision detection
+
+Step 8: Enforce MAX_GHOSTS limit
+  In: MON parsing section of `parse_lvl_to_board()`
+  
+  What:
+  - While parsing MON line, check `mon_count >= MAX_GHOSTS`
+  - If exceeded: free allocated memory, return error (-1)
+  - Abort level load to prevent overflow of `ghosts_files[MAX_GHOSTS]` array
+  
+  Why:
+  - board_t has fixed-size `ghosts_files[MAX_GHOSTS][256]` array
+  - Writing past index 24 corrupts memory
+  - Instructor clarified: MAX_GHOSTS = max per level (not total)
+
+Step 9: Integrate loader into game loop
+  File: `src/game.c`
+  
+  What:
+  - In main():
+    - If argc==2: call `init_level_loader(argv[1])`
+    - Set flag `use_loader = 1`
+  - In level loop:
+    - If use_loader: call `load_next_level(&game_board, accumulated_points)`
+      - Returns 0=success, 1=no more levels, <0=error
+      - If 1: break (end game after last level)
+      - If <0: print error, break
+    - Else: call legacy `load_level()` (single hardcoded level)
+  - After level ends: call `unload_level(&game_board)` to free memory
+  - On exit: call `cleanup_level_loader()` to free paths
+  
+  Why:
+  - Backward compatible: runs without args using legacy mode
+  - Directory mode enables multi-level progression
+  - Memory freed per level to avoid leaks
+
+Step 10: Test with sample input
+  Files: `test_input/1.lvl`, `test_input/pacman.p`
+  
+  What:
+  - Created minimal .lvl with 6x6 board, TEMPO 10, one ghost
+  - Created sample .p with PASSO, POS, and a few moves
+  - Ran: `./bin/Pacmanist test_input`
+  - Verified: level loads, pacman moves per script, portal advances
+  
+  Why:
+  - Validates parsing, gameplay, level progression
+  - Provides working example for testing/debugging
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WHY THIS APPROACH
+
+Technical decisions:
+- POSIX I/O only: Assignment explicitly forbids stdio.h (no fopen/fread/FILE*)
+- String tokenization: strtok_r() is reentrant, safe for nested parsing
+- Numeric parsing: strtol() is POSIX; avoids scanf (stdio)
+- Level sorting: Ensures predictable progression (1.lvl, 2.lvl, ...)
+- Fixed limits: MAX_GHOSTS/MAX_MOVES prevent overflow, match assignment spec
+- Memory lifecycle: Allocate per level, free after level, prevents leaks
+
+Assignment requirements met:
+✓ CLI accepts directory path
+✓ Scans for .lvl, .m, .p files
+✓ Parses DIM, TEMPO, PAC, MON, matrix
+✓ Parses PASSO, POS, commands (W/A/S/D/R/Tn/C)
+✓ Supports multiple levels until final portal
+✓ Uses only POSIX file descriptors
+✓ Handles comments (lines starting with #)
+✓ No stdio.h usage
+
+Why it was done:
+- To meet Exercise 1 requirements: load levels and behaviors from files using POSIX descriptors, ignore stdio, and support multiple levels until the final portal.
+- To honor assignment constraints on file handling, level limits, and input format while preparing the game for later exercises.

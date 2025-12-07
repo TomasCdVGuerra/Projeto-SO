@@ -1,0 +1,279 @@
+Exercise 3 – Paralelização usando múltiplas tarefas (Implementation Plan)
+
+OVERVIEW
+Exercise 3 adds threading so monsters can move independently without waiting for user input, while keeping ncurses single-threaded.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+STEP-BY-STEP IMPLEMENTATION PLAN
+
+Step 1: Add threading infrastructure to board
+  File: `include/board.h`
+  
+  What:
+  - Add to board_t:
+    ```c
+    pthread_mutex_t board_mutex;  // Protects all game state
+    pthread_barrier_t turn_barrier;  // Optional: sync turn steps
+    pthread_t *ghost_threads;  // Array of worker thread handles
+    int threads_active;  // Flag: 1 = running, 0 = stop
+    ```
+  
+  Why:
+  - Mutex prevents race conditions on board/entities
+  - Barrier can synchronize turn-based steps (optional but cleaner)
+  - Need handles to join threads on level end
+
+Step 2: Initialize synchronization primitives
+  File: `src/game.c` after `load_next_level()`
+  
+  What:
+  - After level loads successfully:
+    ```c
+    pthread_mutex_init(&game_board.board_mutex, NULL);
+    // If using barrier:
+    pthread_barrier_init(&game_board.turn_barrier, NULL, 
+                         game_board.n_ghosts + 1);  // +1 for main thread
+    game_board.threads_active = 1;
+    ```
+  
+  Why:
+  - Mutex must be initialized before threads access shared state
+  - Barrier count = workers + main thread (all must sync)
+  - threads_active flag lets workers know when to stop
+
+Step 3: Create worker thread function
+  File: `src/game.c` or `src/board.c`
+  
+  What:
+  ```c
+  void* ghost_worker(void* arg) {
+      ghost_thread_args_t *args = (ghost_thread_args_t*)arg;
+      board_t *board = args->board;
+      int ghost_idx = args->ghost_index;
+      
+      while (board->threads_active) {
+          // Wait for turn signal (optional barrier)
+          pthread_barrier_wait(&board->turn_barrier);
+          
+          // Lock state
+          pthread_mutex_lock(&board->board_mutex);
+          
+          // Compute next move for this ghost
+          ghost_t *ghost = &board->ghosts[ghost_idx];
+          command_t *cmd = &ghost->moves[ghost->current_move % ghost->n_moves];
+          
+          // Apply move (calls existing move_ghost)
+          move_ghost(board, ghost_idx, cmd);
+          
+          // Unlock state
+          pthread_mutex_unlock(&board->board_mutex);
+          
+          // Wait for render complete (optional barrier)
+          pthread_barrier_wait(&board->turn_barrier);
+      }
+      
+      free(args);
+      return NULL;
+  }
+  ```
+  
+  Why:
+  - Each worker loops: wait → lock → move → unlock → repeat
+  - Barrier ensures all ghosts move, then main renders, then repeat
+  - Reuses existing move_ghost() logic (collision rules unchanged)
+
+Step 4: Spawn worker threads
+  File: `src/game.c` after level load
+  
+  What:
+  ```c
+  game_board.ghost_threads = malloc(game_board.n_ghosts * sizeof(pthread_t));
+  
+  for (int i = 0; i < game_board.n_ghosts; i++) {
+      ghost_thread_args_t *args = malloc(sizeof(ghost_thread_args_t));
+      args->board = &game_board;
+      args->ghost_index = i;
+      pthread_create(&game_board.ghost_threads[i], NULL, ghost_worker, args);
+  }
+  ```
+  
+  Why:
+  - One thread per ghost
+  - Pass index so worker knows which ghost to control
+  - Allocate args per thread (freed in worker on exit)
+
+Step 5: Modify main game loop (turn-based sync)
+  File: `src/game.c` in main level loop
+  
+  What:
+  ```c
+  while (true) {
+      // Main thread reads user input (no blocking on getch)
+      command_t pacman_cmd;
+      pacman_cmd.command = get_input();  // Non-blocking or timeout
+      
+      // Signal workers to move (barrier)
+      pthread_barrier_wait(&game_board.turn_barrier);
+      
+      // Lock state
+      pthread_mutex_lock(&game_board.board_mutex);
+      
+      // Apply pacman move
+      if (pacman_cmd.command != '\0') {
+          int result = move_pacman(&game_board, 0, &pacman_cmd);
+          if (result == REACHED_PORTAL) { /* advance level */ }
+          if (result == DEAD_PACMAN) { /* handle death */ }
+      }
+      
+      // Draw board (only main thread touches ncurses)
+      draw_board(&game_board, DRAW_MENU);
+      refresh_screen();
+      
+      // Unlock state
+      pthread_mutex_unlock(&game_board.board_mutex);
+      
+      // Signal render done (barrier)
+      pthread_barrier_wait(&game_board.turn_barrier);
+      
+      // Sleep tempo
+      sleep_ms(game_board.tempo);
+  }
+  ```
+  
+  Why:
+  - Barrier at start: workers wait for turn signal
+  - Main locks, moves pacman, draws (ncurses safe here)
+  - Barrier at end: workers wait for render done
+  - This creates discrete turns: input → all move → render → repeat
+
+Step 6: Make getch() non-blocking
+  File: `src/display.c` in `get_input()`
+  
+  What:
+  - Add `nodelay(stdscr, TRUE)` in `terminal_init()`
+  - In `get_input()`:
+    ```c
+    int ch = getch();
+    if (ch == ERR) return '\0';  // No input ready
+    return map_to_command(ch);
+    ```
+  
+  Why:
+  - Blocking getch() would pause game waiting for user
+  - Non-blocking lets game tick even if user idle
+  - Workers move every turn; pacman only moves when user presses key
+
+Step 7: Stop and join threads on level end
+  File: `src/game.c` when breaking from level loop
+  
+  What:
+  ```c
+  // Signal workers to stop
+  game_board.threads_active = 0;
+  
+  // Wake them if stuck on barrier (send dummy signals or cancel)
+  // Safer: broadcast on condition variable if used instead of barrier
+  
+  // Join all threads
+  for (int i = 0; i < game_board.n_ghosts; i++) {
+      pthread_join(game_board.ghost_threads[i], NULL);
+  }
+  
+  // Free thread handles
+  free(game_board.ghost_threads);
+  
+  // Destroy sync primitives
+  pthread_mutex_destroy(&game_board.board_mutex);
+  pthread_barrier_destroy(&game_board.turn_barrier);
+  ```
+  
+  Why:
+  - threads_active=0 tells workers to exit loop
+  - pthread_join() waits for clean exit (no zombies)
+  - Destroy primitives before next level or program exit
+
+Step 8: Handle quicksave in threaded mode
+  File: `src/game.c` quicksave logic
+  
+  What:
+  Option A: Disable saves during threaded mode
+  - Check `game_board.threads_active`, ignore 'G' if true
+  
+  Option B: Save only at turn sync point
+  - After barrier (all threads paused), fork and save
+  - Child inherits stopped threads (they remain stopped)
+  
+  Recommended: Option A for simplicity
+  
+  Why:
+  - Saving mid-turn could capture inconsistent state
+  - Forking with active threads is complex (threads don't copy)
+  - Safest: disable saves or only allow at start of turn
+
+Step 9: Test threading behavior
+  What:
+  - Run game with multiple ghosts
+  - Verify ghosts move every tick (don't wait for user input)
+  - Press keys randomly; pacman should move only when you press
+  - Check no crashes (race conditions would cause random failures)
+  - Verify ncurses output is clean (no corrupted display)
+  
+  Why:
+  - Confirms parallel movement
+  - Confirms ncurses thread safety (only main draws)
+  - Stress test finds race conditions
+
+Step 10: Optimize synchronization (optional)
+  Advanced: Read-write locks
+  
+  What:
+  - Replace mutex with pthread_rwlock_t
+  - Workers take read lock when checking state, write lock when moving
+  - Main takes write lock for rendering
+  
+  Why:
+  - Multiple ghosts can check state simultaneously
+  - Only moving/rendering requires exclusive access
+  - Better parallelism (valued per assignment)
+  
+  Trade-off: More complex; start with mutex, optimize if needed
+
+═══════════════════════════════════════════════════════════════════════════════
+
+WHY THIS APPROACH
+
+Technical decisions:
+- One thread per ghost: Natural mapping, easy to reason about
+- Main thread owns ncurses: ncurses is NOT thread-safe; violation causes corruption
+- Mutex for state: Simplest correct sync; prevents races on board/entities
+- Barrier for turns: Optional but makes game deterministic (discrete ticks)
+- Non-blocking input: Game doesn't pause waiting for user
+
+Turn-based vs free-running:
+- Turn-based (barrier): All entities move once per tick, predictable
+- Free-running (no barrier): Entities move at own pace, complex to balance
+- Recommendation: Turn-based easier to debug and matches original design
+
+Collision handling:
+- Lock order determines winner when two ghosts want same cell
+- First ghost to acquire lock and move wins
+- Reuses existing move_ghost logic (checks walls/ghosts/pacman)
+
+Memory safety:
+- All shared state accessed only under lock
+- No data races on board array, entity positions, scores
+- Each thread has private stack (args, local vars)
+
+Assignment requirements met:
+✓ Each character in separate thread
+✓ Only main thread touches ncurses
+✓ Maximizes parallelism (ghosts move simultaneously if non-conflicting)
+✓ Scalable sync (mutex/rwlock scale with cores)
+✓ Works with Exercise 1 (multi-level) and optionally Exercise 2 (quicksave)
+
+Alternative: Condition variables instead of barrier
+- Main signals cond when turn starts
+- Workers signal cond when move done
+- Main waits for all workers before rendering
+- More flexible but more code
