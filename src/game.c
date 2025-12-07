@@ -1,7 +1,6 @@
 #include "board.h"
 #include "display.h"
 #include "loader.h"
-#include "save.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -56,43 +55,32 @@ int play_board(board_t *game_board)
 
     if (play->command == 'G')
     {
-        /* Fork-based quicksave: child writes save file and exits; parent continues. */
-        pid_t pid = fork();
-        if (pid < 0)
+        /* Only allow manual user input to trigger quicksave */
+        if (pacman->n_moves == 0)
         {
-            debug("Fork failed for quicksave\n");
-            return CONTINUE_PLAY;
-        }
-        else if (pid == 0)
-        {
-            /* Child: perform save and exit immediately */
-            int r = save_game("save.dat", game_board);
-            if (r == 0)
-                debug("Quicksave: saved to save.dat\n");
-            else
-                debug("Quicksave: save failed\n");
-            _exit(0);
+            debug("Quicksave: user pressed G, creating backup\n");
+            return CREATE_BACKUP;
         }
         else
         {
-            /* Parent: continue playing */
+            debug("Quicksave: ignored G from scripted moves\n");
             return CONTINUE_PLAY;
         }
     }
 
     if (play->command == 'L')
     {
-        /* Quickload from save.dat */
-        int r = load_game("save.dat", game_board);
-        if (r == 0)
+        /* Only allow manual user input to trigger quickload */
+        if (pacman->n_moves == 0)
         {
-            debug("Quickload: loaded save.dat\n");
+            debug("Quickload: user pressed L, restoring backup\n");
+            return LOAD_BACKUP;
         }
         else
         {
-            debug("Quickload: failed to load save.dat\n");
+            debug("Quickload: ignored L from scripted moves\n");
+            return CONTINUE_PLAY;
         }
-        return CONTINUE_PLAY;
     }
 
     int result = move_pacman(game_board, 0, play);
@@ -104,7 +92,7 @@ int play_board(board_t *game_board)
 
     if (result == DEAD_PACMAN)
     {
-        return QUIT_GAME;
+        return DEAD_PACMAN;
     }
 
     for (int i = 0; i < game_board->n_ghosts; i++)
@@ -117,7 +105,7 @@ int play_board(board_t *game_board)
 
     if (!game_board->pacmans[0].alive)
     {
-        return QUIT_GAME;
+        return DEAD_PACMAN;
     }
 
     return CONTINUE_PLAY;
@@ -164,10 +152,11 @@ int main(int argc, char **argv)
     bool end_game = false;
     board_t game_board;
 
-    /* PID of the saved (stopped) child process holding a quicksave state.
-     * Per-assignment: only one saved state at a time. 0 means no saved state.
+    /* Fork-based quicksave: PID of the suspended child process holding saved state.
+     * Per Exercise 2: only one saved state at a time. 0 means no saved state.
      */
     pid_t saved_pid = 0;
+    int saved_pipe_fd = -1; /* Pipe to read saved state from child */
 
     while (!end_game)
     {
@@ -211,71 +200,147 @@ int main(int argc, char **argv)
 
             if (result == CREATE_BACKUP)
             {
-                /* Create a fork-based quicksave. If a previous saved child
-                 * exists, kill it to maintain only one saved state.
+                /* Fork-based quicksave per Exercise 2.
+                 * If a previous saved child exists, do nothing as required.
                  */
                 if (saved_pid != 0)
                 {
-                    kill(saved_pid, SIGKILL);
-                    waitpid(saved_pid, NULL, 0);
-                    saved_pid = 0;
+                    debug("Quicksave: save already exists, ignoring G\n");
+                    continue;
+                }
+
+                int pfd[2];
+                if (pipe(pfd) == -1)
+                {
+                    debug("Quicksave: pipe failed: %d\n", errno);
+                    continue;
                 }
 
                 pid_t pid = fork();
                 if (pid < 0)
                 {
                     debug("Quicksave: fork failed: %d\n", errno);
+                    close(pfd[0]);
+                    close(pfd[1]);
                 }
                 else if (pid == 0)
                 {
-                    /* Child: suspend itself to act as the saved state. It will
-                     * be resumed later with SIGCONT to restore.
+                    /* CHILD: Suspend ourselves to hold the saved game state.
+                     * We'll be resumed with SIGCONT when parent does quickload.
                      */
-                    debug("Quicksave: child created (pid=%d) - suspending\n", getpid());
-                    kill(getpid(), SIGSTOP);
-                    /* When resumed, child continues execution here and effectively
-                     * becomes the restored process.
+                    close(pfd[0]); /* Close read end */
+
+                    debug("Quicksave: child (pid=%d) suspending to hold saved state\n", getpid());
+                    raise(SIGSTOP); /* Suspend ourselves */
+
+                    /* When we reach here, we've been resumed by SIGCONT from parent.
+                     * We write our state to the pipe and exit.
                      */
-                    debug("Quicksave: child resumed (pid=%d)\n", getpid());
-                    /* Clear saved_pid in child context to avoid double-management */
-                    saved_pid = 0;
+                    debug("Quicksave: child (pid=%d) resumed, sending state to parent\n", getpid());
+
+                    /* Write board struct */
+                    write(pfd[1], &game_board, sizeof(board_t));
+
+                    /* Write dynamic arrays */
+                    int board_size = game_board.width * game_board.height;
+                    write(pfd[1], game_board.board, board_size * sizeof(board_pos_t));
+                    write(pfd[1], game_board.pacmans, game_board.n_pacmans * sizeof(pacman_t));
+                    write(pfd[1], game_board.ghosts, game_board.n_ghosts * sizeof(ghost_t));
+
+                    /* Write accumulated points */
+                    write(pfd[1], &accumulated_points, sizeof(int));
+
+                    /* Write current level index */
+                    int lvl = get_current_level();
+                    write(pfd[1], &lvl, sizeof(int));
+
+                    close(pfd[1]);
+
+                    /* Clean up and exit */
+                    /* Note: we don't unload_level here because we want to preserve the pointers
+                       in the parent's memory (which we are a copy of). But since we are exiting,
+                       OS reclaims memory. We should be careful not to double-free if we used shared mem,
+                       but here it's COW. */
+                    _exit(0);
                 }
                 else
                 {
-                    /* Parent: record child's pid and continue playing */
+                    /* PARENT: Record child PID and pipe. */
+                    close(pfd[1]); /* Close write end */
                     saved_pid = pid;
-                    debug("Quicksave: saved child pid=%d\n", (int)saved_pid);
+                    saved_pipe_fd = pfd[0];
+                    debug("Quicksave: parent continues, child pid=%d suspended with saved state\n", (int)saved_pid);
                 }
 
-                /* continue playing in the parent */
                 continue;
             }
 
             if (result == LOAD_BACKUP)
             {
+            load_backup_label:
                 if (saved_pid == 0)
                 {
-                    debug("Quicksave: no saved state to restore\n");
+                    debug("Quickload: no saved state to restore\n");
                     continue;
                 }
 
-                /* Signal the saved child to continue and exit the parent so
-                 * the child takes over the terminal/process. Cleanup first.
-                 */
-                debug("Quicksave: restoring saved pid=%d\n", (int)saved_pid);
-                if (kill(saved_pid, SIGCONT) != 0)
+                debug("Quickload: restoring state from child (pid=%d)\n", (int)saved_pid);
+
+                /* Resume the child process so it writes data to pipe */
+                kill(saved_pid, SIGCONT);
+
+                /* Read board struct */
+                board_t temp_board;
+                if (read(saved_pipe_fd, &temp_board, sizeof(board_t)) != sizeof(board_t))
                 {
-                    debug("Quicksave: failed to SIGCONT pid=%d\n", (int)saved_pid);
+                    debug("Quickload: failed to read board struct\n");
+                    /* If read fails, maybe child died? Cleanup. */
+                    kill(saved_pid, SIGKILL);
+                    waitpid(saved_pid, NULL, 0);
+                    close(saved_pipe_fd);
+                    saved_pid = 0;
+                    saved_pipe_fd = -1;
                     continue;
                 }
 
-                /* Cleanup parent and exit so the child continues as the process */
-                terminal_cleanup();
-                cleanup_level_loader();
-                close_debug_file();
-                _exit(0);
-            }
+                /* Unload current level to free memory before overwriting */
+                unload_level(&game_board);
 
+                /* Copy struct fields (except pointers which we'll allocate) */
+                game_board = temp_board;
+
+                /* Allocate and read dynamic arrays */
+                int board_size = game_board.width * game_board.height;
+                game_board.board = malloc(board_size * sizeof(board_pos_t));
+                read(saved_pipe_fd, game_board.board, board_size * sizeof(board_pos_t));
+
+                game_board.pacmans = malloc(game_board.n_pacmans * sizeof(pacman_t));
+                read(saved_pipe_fd, game_board.pacmans, game_board.n_pacmans * sizeof(pacman_t));
+
+                game_board.ghosts = malloc(game_board.n_ghosts * sizeof(ghost_t));
+                read(saved_pipe_fd, game_board.ghosts, game_board.n_ghosts * sizeof(ghost_t));
+
+                /* Read accumulated points */
+                read(saved_pipe_fd, &accumulated_points, sizeof(int));
+
+                /* Read current level index */
+                int lvl;
+                read(saved_pipe_fd, &lvl, sizeof(int));
+                set_current_level(lvl);
+
+                /* Wait for child to exit */
+                waitpid(saved_pid, NULL, 0);
+                close(saved_pipe_fd);
+                saved_pid = 0;
+                saved_pipe_fd = -1;
+
+                debug("Quickload: state restored successfully\n");
+
+                /* Force a screen refresh so the user sees the restored state immediately */
+                screen_refresh(&game_board, DRAW_MENU);
+
+                continue;
+            }
             if (result == QUIT_GAME)
             {
                 screen_refresh(&game_board, DRAW_GAME_OVER);
@@ -284,12 +349,37 @@ int main(int argc, char **argv)
                 break;
             }
 
+            if (result == DEAD_PACMAN)
+            {
+                if (saved_pid != 0)
+                {
+                    debug("Dead Pacman: restoring from save (pid=%d)\n", (int)saved_pid);
+                    goto load_backup_label;
+                }
+                else
+                {
+                    screen_refresh(&game_board, DRAW_GAME_OVER);
+                    sleep_ms(game_board.tempo);
+                    end_game = true;
+                    break;
+                }
+            }
+
             screen_refresh(&game_board, DRAW_MENU);
 
             accumulated_points = game_board.pacmans[0].points;
         }
         print_board(&game_board);
         unload_level(&game_board);
+    }
+
+    /* Cleanup saved process if it exists */
+    if (saved_pid != 0)
+    {
+        kill(saved_pid, SIGKILL);
+        waitpid(saved_pid, NULL, 0);
+        if (saved_pipe_fd != -1)
+            close(saved_pipe_fd);
     }
 
     terminal_cleanup();

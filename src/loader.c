@@ -632,3 +632,13 @@ int load_next_level(board_t *board, int accumulated_points)
     int r = parse_lvl_to_board(lvlpath, board, accumulated_points);
     return r == 0 ? 0 : -1;
 }
+
+int get_current_level(void)
+{
+    return current_level;
+}
+
+void set_current_level(int level)
+{
+    current_level = level;
+}

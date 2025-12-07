@@ -48,7 +48,7 @@ KEY S
 REFRESH
 KEY S
 REFRESH
-=== [28508] LEVEL INFO ===
+=== [87336] LEVEL INFO ===
 Dimensions: 5 x 5
 Tempo: 50
 Pacman file: pacman_01.p
@@ -94,7 +94,7 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-=== [28508] LEVEL INFO ===
+=== [87336] LEVEL INFO ===
 Dimensions: 7 x 7
 Tempo: 80
 Pacman file: 
@@ -110,6 +110,12 @@ W    PW
 WWWWWWW
 ==================
 parse_lvl_to_board: parsing 'test_levels/03_level_maze_small.lvl'
+get_input: raw ch=103
+get_input: mapped to 'G'
+KEY G
+Quicksave: user pressed G, creating backup
+Quicksave: parent continues, child pid=87344 suspended with saved state
+Quicksave: child (pid=87344) suspending to hold saved state
 get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
@@ -134,6 +140,72 @@ get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
 REFRESH
+get_input: raw ch=108
+get_input: mapped to 'L'
+KEY L
+Quickload: user pressed L, restoring backup
+Quickload: restoring state from child (pid=87344)
+Quicksave: child (pid=87344) resumed, sending state to parent
+Quickload: state restored successfully
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=103
+get_input: mapped to 'G'
+KEY G
+Quicksave: user pressed G, creating backup
+Quicksave: parent continues, child pid=87345 suspended with saved state
+Quicksave: child (pid=87345) suspending to hold saved state
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
 get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
@@ -142,7 +214,64 @@ get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
 REFRESH
-=== [28508] LEVEL INFO ===
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+=== [87336] LEVEL INFO ===
+Dimensions: 7 x 7
+Tempo: 120
+Pacman file: 
+Monster files (0):
+
+=== BOARD ===
+WWWWWWW
+W W W W
+W W W W
+W   W W
+W WWW W
+W    PW
+WWWWWWW
+==================
+parse_lvl_to_board: parsing 'test_levels/04_level_maze_medium.lvl'
+get_input: raw ch=108
+get_input: mapped to 'L'
+KEY L
+Quickload: user pressed L, restoring backup
+Quickload: restoring state from child (pid=87345)
+Quicksave: child (pid=87345) resumed, sending state to parent
+Quickload: state restored successfully
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=108
+get_input: mapped to 'L'
+KEY L
+Quickload: user pressed L, restoring backup
+Quickload: no saved state to restore
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+=== [87336] LEVEL INFO ===
 Dimensions: 7 x 7
 Tempo: 120
 Pacman file: 
@@ -170,6 +299,62 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
@@ -178,7 +363,15 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-=== [28508] LEVEL INFO ===
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+=== [87336] LEVEL INFO ===
 Dimensions: 8 x 10
 Tempo: 150
 Pacman file: 
@@ -195,65 +388,9 @@ WPWWWWWWW
 WWWWWWWWWW
 ==================
 parse_lvl_to_board: parsing 'test_levels/05_level_maze_large.lvl'
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
 REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
@@ -279,7 +416,69 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-=== [28508] LEVEL INFO ===
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=103
+get_input: mapped to 'G'
+KEY G
+Quicksave: user pressed G, creating backup
+Quicksave: parent continues, child pid=87348 suspended with saved state
+Quicksave: child (pid=87348) suspending to hold saved state
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+=== [87336] LEVEL INFO ===
 Dimensions: 10 x 15
 Tempo: 200
 Pacman file: 
@@ -298,9 +497,9 @@ W WWWWWWWWWWWWW
 WWWWWWWWWWWWWWW
 ==================
 parse_lvl_to_board: parsing 'test_levels/06_level_tricky_corners.lvl'
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
 REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
@@ -310,7 +509,11 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-=== [28508] LEVEL INFO ===
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+=== [87336] LEVEL INFO ===
 Dimensions: 6 x 8
 Tempo: 100
 Pacman file: 
@@ -349,6 +552,14 @@ get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
 REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
 get_input: raw ch=119
 get_input: mapped to 'W'
 KEY W
@@ -361,7 +572,7 @@ get_input: raw ch=97
 get_input: mapped to 'A'
 KEY A
 REFRESH
-=== [28508] LEVEL INFO ===
+=== [87336] LEVEL INFO ===
 Dimensions: 5 x 7
 Tempo: 100
 Pacman file: 
@@ -379,6 +590,194 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+Killing 0 pacman
+
+Dead Pacman: restoring from save (pid=87348)
+Quickload: restoring state from child (pid=87348)
+Quicksave: child (pid=87348) resumed, sending state to parent
+Quickload: state restored successfully
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+=== [87336] LEVEL INFO ===
+Dimensions: 10 x 15
+Tempo: 200
+Pacman file: 
+Monster files (0):
+
+=== BOARD ===
+WWWWWWWWWWWWWWW
+W             W
+W WWW WWW WWW W
+W W W W W W W W
+W WWW WWW WWW W
+W W         W W
+W WWWWWWWWW W W
+W            PW
+W WWWWWWWWWWWWW
+WWWWWWWWWWWWWWW
+==================
+parse_lvl_to_board: parsing 'test_levels/06_level_tricky_corners.lvl'
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+=== [87336] LEVEL INFO ===
+Dimensions: 6 x 8
+Tempo: 100
+Pacman file: 
+Monster files (0):
+
+=== BOARD ===
+WWWWWWWW
+W W W  W
+W W WWW 
+W W  W W
+WPWWW W 
+WWWWWWWW
+==================
+parse_lvl_to_board: parsing 'test_levels/07_level_portals.lvl'
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+=== [87336] LEVEL INFO ===
+Dimensions: 5 x 7
+Tempo: 100
+Pacman file: 
+Monster files (0):
+
+=== BOARD ===
+WWWWWWW
+W   P W
+W WWW W
+W     W
+WWWWWWW
+==================
+parse_lvl_to_board: parsing 'test_levels/08_level_with_ghost.lvl'
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=103
+get_input: mapped to 'G'
+KEY G
+Quicksave: user pressed G, creating backup
+Quicksave: parent continues, child pid=87351 suspended with saved state
+Quicksave: child (pid=87351) suspending to hold saved state
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
 get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
@@ -395,85 +794,21 @@ get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
 REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
 REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
 REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
 REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
+get_input: raw ch=119
+get_input: mapped to 'W'
+KEY W
 REFRESH
 get_input: raw ch=97
 get_input: mapped to 'A'
@@ -495,17 +830,9 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
-REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
 REFRESH
 get_input: raw ch=97
 get_input: mapped to 'A'
@@ -518,22 +845,6 @@ REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
-REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
 REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
@@ -551,38 +862,11 @@ get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
 REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
+get_input: raw ch=103
+get_input: mapped to 'G'
+KEY G
+Quicksave: user pressed G, creating backup
+Quicksave: save already exists, ignoring G
 get_input: raw ch=119
 get_input: mapped to 'W'
 KEY W
@@ -591,9 +875,17 @@ get_input: raw ch=119
 get_input: mapped to 'W'
 KEY W
 REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
+get_input: raw ch=108
+get_input: mapped to 'L'
+KEY L
+Quickload: user pressed L, restoring backup
+Quickload: restoring state from child (pid=87351)
+Quicksave: child (pid=87351) resumed, sending state to parent
+Quickload: state restored successfully
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
 REFRESH
 get_input: raw ch=97
 get_input: mapped to 'A'
@@ -615,34 +907,6 @@ get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
-REFRESH
-get_input: raw ch=119
-get_input: mapped to 'W'
-KEY W
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
 get_input: raw ch=100
 get_input: mapped to 'D'
 KEY D
@@ -655,33 +919,9 @@ get_input: raw ch=97
 get_input: mapped to 'A'
 KEY A
 REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
-REFRESH
 get_input: raw ch=97
 get_input: mapped to 'A'
 KEY A
-REFRESH
-get_input: raw ch=97
-get_input: mapped to 'A'
-KEY A
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
-REFRESH
-get_input: raw ch=100
-get_input: mapped to 'D'
-KEY D
 REFRESH
 get_input: raw ch=100
 get_input: mapped to 'D'
@@ -690,28 +930,64 @@ REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
 REFRESH
 get_input: raw ch=119
 get_input: mapped to 'W'
 KEY W
 REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
+REFRESH
+get_input: raw ch=97
+get_input: mapped to 'A'
+KEY A
 REFRESH
 get_input: raw ch=119
 get_input: mapped to 'W'
 KEY W
 REFRESH
-get_input: raw ch=115
-get_input: mapped to 'S'
-KEY S
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
+REFRESH
+get_input: raw ch=100
+get_input: mapped to 'D'
+KEY D
 REFRESH
 get_input: raw ch=115
 get_input: mapped to 'S'
 KEY S
 REFRESH
-=== [28508] LEVEL INFO ===
+get_input: raw ch=115
+get_input: mapped to 'S'
+KEY S
+REFRESH
+=== [87336] LEVEL INFO ===
 Dimensions: 7 x 9
 Tempo: 120
 Pacman file: 

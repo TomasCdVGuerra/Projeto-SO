@@ -18,10 +18,17 @@ void cleanup_level_loader(void);
 /* Returns non-zero if the loader was initialized successfully. */
 int loader_is_initialized(void);
 
-/* Load the next level into the provided `board_t` structure. Returns:
- *  0 on success,
- *  1 if there are no more levels to load,
- *  negative on error.
+/* Get/Set current level index (for save/restore) */
+int get_current_level(void);
+void set_current_level(int level);
+
+/* Load the next level from the directory.
+ * Populates `board` with the level data.
+ * `accumulated_points` is carried over from previous levels.
+ * Returns:
+ *   0 on success
+ *   1 if no more levels are available
+ *  -1 on error
  */
 int load_next_level(board_t *board, int accumulated_points);
 

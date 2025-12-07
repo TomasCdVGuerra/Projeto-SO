@@ -2,6 +2,7 @@
 #include "board.h"
 #include <stdlib.h>
 #include <ctype.h>
+#include <errno.h>
 
 int terminal_init()
 {
@@ -164,13 +165,14 @@ char get_input()
     // Get a character from the keyboard
     int ch = getch();
 
-    debug("get_input: raw ch=%d\n", ch);
-
-    // getch() returns ERR if no input is available
     if (ch == ERR)
     {
+        int err = errno;
+        debug("get_input: raw ch=%d errno=%d\n", ch, err);
         return '\0'; // No input
     }
+
+    debug("get_input: raw ch=%d\n", ch);
 
     /* Map arrow keys to WASD for convenience */
     if (ch == KEY_UP)
