@@ -439,8 +439,23 @@ int load_level(board_t *board, int points)
     board->n_pacmans = 1;
 
     board->board = calloc(board->width * board->height, sizeof(board_pos_t));
+    if (!board->board)
+        return -1;
+
     board->pacmans = calloc(board->n_pacmans, sizeof(pacman_t));
+    if (!board->pacmans)
+    {
+        free(board->board);
+        return -1;
+    }
+
     board->ghosts = calloc(board->n_ghosts, sizeof(ghost_t));
+    if (!board->ghosts)
+    {
+        free(board->board);
+        free(board->pacmans);
+        return -1;
+    }
 
     strncpy(board->level_name, "Static Level", sizeof(board->level_name) - 1);
     board->level_name[sizeof(board->level_name) - 1] = '\0';
@@ -551,7 +566,7 @@ void debug(const char *format, ...)
                         tmp[tp++] = rev[i];
                 }
                 size_t can = sizeof(out) - off - 1;
-                size_t copy = tp < (int)can ? tp : can;
+                size_t copy = (size_t)tp < can ? (size_t)tp : can;
                 memcpy(out + off, tmp, copy);
                 off += copy;
                 p++;

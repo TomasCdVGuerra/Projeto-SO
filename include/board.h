@@ -6,6 +6,11 @@
 #define MAX_FILENAME 256
 #define MAX_GHOSTS 25
 
+/* Input validation limits for level files */
+#define MAX_BOARD_DIMENSION 1000
+#define MAX_TEMPO_MS 10000
+#define MAX_PASSO_VALUE 1000
+
 typedef enum {
     REACHED_PORTAL = 1,
     VALID_MOVE = 0,
