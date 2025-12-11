@@ -494,6 +494,11 @@ static int parse_lvl_to_board(const char *lvlpath, board_t *board, int accumulat
     board->pacmans = calloc(board->n_pacmans, sizeof(pacman_t));
     board->ghosts = calloc(board->n_ghosts, sizeof(ghost_t));
 
+    for (int i = 0; i < board->width * board->height; i++)
+    {
+        pthread_mutex_init(&board->board[i].pos_mutex, NULL);
+    }
+
     /* initialize board positions */
     for (int y = 0; y < rows; y++)
     {

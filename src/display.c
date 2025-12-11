@@ -19,7 +19,7 @@ int terminal_init()
     keypad(stdscr, TRUE);
 
     // Make getch() non-blocking (return ERR if no input)
-    // nodelay(stdscr, TRUE); // Uncomment if non-blocking input is desired
+    nodelay(stdscr, TRUE);
 
     // Hide the cursor
     curs_set(0);

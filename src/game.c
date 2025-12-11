@@ -8,12 +8,45 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <pthread.h>
 
 #define CONTINUE_PLAY 0
 #define NEXT_LEVEL 1
 #define QUIT_GAME 2
 #define LOAD_BACKUP 3
 #define CREATE_BACKUP 4
+
+typedef struct
+{
+    board_t *board;
+    int ghost_index;
+} ghost_thread_args_t;
+
+void *ghost_worker(void *arg)
+{
+    ghost_thread_args_t *args = (ghost_thread_args_t *)arg;
+    board_t *board = args->board;
+    int ghost_idx = args->ghost_index;
+
+    while (board->threads_active)
+    {
+        barrier_wait(&board->turn_barrier);
+
+        if (!board->threads_active)
+        {
+            break;
+        }
+
+        ghost_t *ghost = &board->ghosts[ghost_idx];
+        command_t *cmd = &ghost->moves[ghost->current_move % ghost->n_moves];
+        move_ghost(board, ghost_idx, cmd);
+
+        barrier_wait(&board->turn_barrier);
+    }
+
+    free(args);
+    return NULL;
+}
 
 void screen_refresh(board_t *game_board, int mode)
 {
@@ -53,19 +86,24 @@ int play_board(board_t *game_board)
             return LOAD_BACKUP;
     }
 
+    barrier_wait(&game_board->turn_barrier);
+
     int result = move_pacman(game_board, 0, play);
+
+    draw_board(game_board, DRAW_MENU);
+    refresh_screen();
+
+    int ret_val = CONTINUE_PLAY;
     if (result == REACHED_PORTAL)
-        return NEXT_LEVEL;
-    if (result == DEAD_PACMAN)
-        return DEAD_PACMAN;
+        ret_val = NEXT_LEVEL;
+    else if (result == DEAD_PACMAN)
+        ret_val = DEAD_PACMAN;
+    else if (!game_board->pacmans[0].alive)
+        ret_val = DEAD_PACMAN;
 
-    for (int i = 0; i < game_board->n_ghosts; i++)
-    {
-        ghost_t *ghost = &game_board->ghosts[i];
-        move_ghost(game_board, i, &ghost->moves[ghost->current_move % ghost->n_moves]);
-    }
+    barrier_wait(&game_board->turn_barrier);
 
-    return game_board->pacmans[0].alive ? CONTINUE_PLAY : DEAD_PACMAN;
+    return ret_val;
 }
 
 static int restore_from_backup(board_t *game_board, int *accumulated_points,
@@ -94,6 +132,11 @@ static int restore_from_backup(board_t *game_board, int *accumulated_points,
     game_board->board = malloc(board_size * sizeof(board_pos_t));
     read(*saved_pipe_fd, game_board->board, board_size * sizeof(board_pos_t));
 
+    for (int i = 0; i < board_size; i++)
+    {
+        pthread_mutex_init(&game_board->board[i].pos_mutex, NULL);
+    }
+
     game_board->pacmans = malloc(game_board->n_pacmans * sizeof(pacman_t));
     read(*saved_pipe_fd, game_board->pacmans, game_board->n_pacmans * sizeof(pacman_t));
 
@@ -112,6 +155,37 @@ static int restore_from_backup(board_t *game_board, int *accumulated_points,
     *saved_pipe_fd = -1;
 
     return 0;
+}
+
+static void init_threads(board_t *game_board)
+{
+    barrier_init(&game_board->turn_barrier, game_board->n_ghosts + 1);
+    game_board->threads_active = 1;
+
+    game_board->ghost_threads = malloc(game_board->n_ghosts * sizeof(pthread_t));
+
+    for (int i = 0; i < game_board->n_ghosts; i++)
+    {
+        ghost_thread_args_t *args = malloc(sizeof(ghost_thread_args_t));
+        args->board = game_board;
+        args->ghost_index = i;
+        pthread_create(&game_board->ghost_threads[i], NULL, ghost_worker, args);
+    }
+}
+
+static void cleanup_threads(board_t *game_board)
+{
+    game_board->threads_active = 0;
+
+    barrier_wait(&game_board->turn_barrier);
+
+    for (int i = 0; i < game_board->n_ghosts; i++)
+    {
+        pthread_join(game_board->ghost_threads[i], NULL);
+    }
+
+    free(game_board->ghost_threads);
+    barrier_destroy(&game_board->turn_barrier);
 }
 
 int main(int argc, char **argv)
@@ -167,6 +241,8 @@ int main(int argc, char **argv)
         {
             load_level(&game_board, accumulated_points);
         }
+
+        init_threads(&game_board);
 
         draw_board(&game_board, DRAW_MENU);
         refresh_screen();
@@ -264,6 +340,7 @@ int main(int argc, char **argv)
             accumulated_points = game_board.pacmans[0].points;
         }
 
+        cleanup_threads(&game_board);
         print_board(&game_board);
         unload_level(&game_board);
     }

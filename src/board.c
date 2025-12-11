@@ -9,6 +9,72 @@
 
 static int debug_fd = -1;
 
+static void lock_two_positions(board_t *board, int idx1, int idx2)
+{
+    if (idx1 == idx2)
+    {
+        pthread_mutex_lock(&board->board[idx1].pos_mutex);
+    }
+    else if (idx1 < idx2)
+    {
+        pthread_mutex_lock(&board->board[idx1].pos_mutex);
+        pthread_mutex_lock(&board->board[idx2].pos_mutex);
+    }
+    else
+    {
+        pthread_mutex_lock(&board->board[idx2].pos_mutex);
+        pthread_mutex_lock(&board->board[idx1].pos_mutex);
+    }
+}
+
+static void unlock_two_positions(board_t *board, int idx1, int idx2)
+{
+    pthread_mutex_unlock(&board->board[idx1].pos_mutex);
+    if (idx1 != idx2)
+    {
+        pthread_mutex_unlock(&board->board[idx2].pos_mutex);
+    }
+}
+
+void barrier_init(simple_barrier_t *barrier, int count)
+{
+    pthread_mutex_init(&barrier->mutex, NULL);
+    pthread_cond_init(&barrier->cond, NULL);
+    barrier->count = 0;
+    barrier->threshold = count;
+    barrier->generation = 0;
+}
+
+void barrier_wait(simple_barrier_t *barrier)
+{
+    pthread_mutex_lock(&barrier->mutex);
+
+    int my_generation = barrier->generation;
+    barrier->count++;
+
+    if (barrier->count >= barrier->threshold)
+    {
+        barrier->count = 0;
+        barrier->generation++;
+        pthread_cond_broadcast(&barrier->cond);
+        pthread_mutex_unlock(&barrier->mutex);
+    }
+    else
+    {
+        while (my_generation == barrier->generation)
+        {
+            pthread_cond_wait(&barrier->cond, &barrier->mutex);
+        }
+        pthread_mutex_unlock(&barrier->mutex);
+    }
+}
+
+void barrier_destroy(simple_barrier_t *barrier)
+{
+    pthread_mutex_destroy(&barrier->mutex);
+    pthread_cond_destroy(&barrier->cond);
+}
+
 static int find_and_kill_pacman(board_t *board, int new_x, int new_y)
 {
     for (int p = 0; p < board->n_pacmans; p++)
@@ -101,20 +167,28 @@ int move_pacman(board_t *board, int pacman_index, command_t *command)
 
     int new_index = get_board_index(board, new_x, new_y);
     int old_index = get_board_index(board, pac->pos_x, pac->pos_y);
+
+    lock_two_positions(board, old_index, new_index);
+
     char target_content = board->board[new_index].content;
 
     if (board->board[new_index].has_portal)
     {
         board->board[old_index].content = ' ';
         board->board[new_index].content = 'P';
+        unlock_two_positions(board, old_index, new_index);
         return REACHED_PORTAL;
     }
 
     if (target_content == 'W')
+    {
+        unlock_two_positions(board, old_index, new_index);
         return INVALID_MOVE;
+    }
 
     if (target_content == 'M')
     {
+        unlock_two_positions(board, old_index, new_index);
         kill_pacman(board, pacman_index);
         return DEAD_PACMAN;
     }
@@ -129,6 +203,8 @@ int move_pacman(board_t *board, int pacman_index, command_t *command)
     pac->pos_x = new_x;
     pac->pos_y = new_y;
     board->board[new_index].content = 'P';
+
+    unlock_two_positions(board, old_index, new_index);
 
     return VALID_MOVE;
 }
@@ -249,10 +325,15 @@ int move_ghost_charged(board_t *board, int ghost_index, char direction)
     int old_index = get_board_index(board, ghost->pos_x, ghost->pos_y);
     int new_index = get_board_index(board, new_x, new_y);
 
+    lock_two_positions(board, old_index, new_index);
+
     board->board[old_index].content = ' ';
     ghost->pos_x = new_x;
     ghost->pos_y = new_y;
     board->board[new_index].content = 'M';
+
+    unlock_two_positions(board, old_index, new_index);
+
     return result;
 }
 
@@ -323,11 +404,15 @@ int move_ghost(board_t *board, int ghost_index, command_t *command)
     // Check board position
     int new_index = get_board_index(board, new_x, new_y);
     int old_index = get_board_index(board, ghost->pos_x, ghost->pos_y);
+
+    lock_two_positions(board, old_index, new_index);
+
     char target_content = board->board[new_index].content;
 
     // Check for walls and ghosts
     if (target_content == 'W' || target_content == 'M')
     {
+        unlock_two_positions(board, old_index, new_index);
         return INVALID_MOVE;
     }
 
@@ -347,6 +432,9 @@ int move_ghost(board_t *board, int ghost_index, command_t *command)
 
     // Update board - set new position
     board->board[new_index].content = 'M';
+
+    unlock_two_positions(board, old_index, new_index);
+
     return result;
 }
 
@@ -422,6 +510,11 @@ int load_level(board_t *board, int points)
     board->pacmans = calloc(board->n_pacmans, sizeof(pacman_t));
     board->ghosts = calloc(board->n_ghosts, sizeof(ghost_t));
 
+    for (int i = 0; i < board->width * board->height; i++)
+    {
+        pthread_mutex_init(&board->board[i].pos_mutex, NULL);
+    }
+
     strncpy(board->level_name, "Static Level", sizeof(board->level_name) - 1);
     board->level_name[sizeof(board->level_name) - 1] = '\0';
 
@@ -454,6 +547,10 @@ int load_level(board_t *board, int points)
 
 void unload_level(board_t *board)
 {
+    for (int i = 0; i < board->width * board->height; i++)
+    {
+        pthread_mutex_destroy(&board->board[i].pos_mutex);
+    }
     free(board->board);
     free(board->pacmans);
     free(board->ghosts);
