@@ -1,8 +1,3 @@
-/* loader.c - POSIX-based loader implementation
- * Scans a directory for .lvl files and parses .lvl, .m, .p files using
- * POSIX file APIs (`open`, `read`) to populate `board_t` structures.
- */
-
 #include "loader.h"
 #include "board.h"
 
@@ -34,22 +29,16 @@ static int has_suffix(const char *name, const char *suf)
     return strcmp(name + n - m, suf) == 0;
 }
 
-/* Compare two level paths by optional numeric prefix in the basename.
- * If both basenames start with a number, compare numerically; otherwise
- * fall back to lexicographic compare of the basename.
- */
 static int cmp_level_paths(const void *a, const void *b)
 {
     const char *A = *(const char **)a;
     const char *B = *(const char **)b;
 
-    /* get basenames (after last '/') */
     const char *ba = strrchr(A, '/');
     const char *bb = strrchr(B, '/');
     ba = ba ? ba + 1 : A;
     bb = bb ? bb + 1 : B;
 
-    /* try parse leading integers */
     char *endptr;
     long na = strtol(ba, &endptr, 10);
     int a_has_num = (endptr != ba);
@@ -59,21 +48,14 @@ static int cmp_level_paths(const void *a, const void *b)
 
     if (a_has_num && b_has_num)
     {
-        if (na < nb)
-            return -1;
-        if (na > nb)
-            return 1;
-        /* equal numeric prefix: fall back to strcmp on whole basename */
+        if (na != nb)
+            return (na < nb) ? -1 : 1;
         return strcmp(ba, bb);
     }
 
-    /* If only one has a number, put the numbered one first */
-    if (a_has_num && !b_has_num)
-        return -1;
-    if (!a_has_num && b_has_num)
-        return 1;
+    if (a_has_num != b_has_num)
+        return a_has_num ? -1 : 1;
 
-    /* neither have numbers: lexicographic compare of basenames */
     return strcmp(ba, bb);
 }
 
@@ -83,24 +65,13 @@ int init_level_loader(const char *dirpath)
         return -1;
 
     struct stat st;
-    if (stat(dirpath, &st) != 0)
-    {
-        return -errno;
-    }
-
-    if (!S_ISDIR(st.st_mode))
-    {
+    if (stat(dirpath, &st) != 0 || !S_ISDIR(st.st_mode))
         return -1;
-    }
 
     DIR *d = opendir(dirpath);
     if (!d)
         return -errno;
 
-    /* Log which directory we are scanning for debugging */
-    debug("init_level_loader: scanning dir '%s'\n", dirpath);
-
-    /* Save a copy of the directory */
     loader_dir = strdup(dirpath);
     if (!loader_dir)
     {
@@ -108,14 +79,10 @@ int init_level_loader(const char *dirpath)
         return -1;
     }
 
-    /* Collect .lvl files */
     struct dirent *ent;
     level_count = 0;
     while ((ent = readdir(d)) != NULL)
     {
-        /* Some filesystems/platforms may not provide d_type; skip '.' and '..' and rely
-         * on suffix checks for regular files. This avoids using DT_DIR which may be
-         * undefined on some systems. */
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
         if (has_suffix(ent->d_name, ".lvl"))
@@ -126,7 +93,6 @@ int init_level_loader(const char *dirpath)
             char *full = malloc(len);
             if (!full)
                 continue;
-            /* construct path: dirpath + '/' + name + '\0' */
             char *fp = full;
             strcpy(fp, dirpath);
             fp += strlen(dirpath);
@@ -137,22 +103,13 @@ int init_level_loader(const char *dirpath)
     }
     closedir(d);
 
-    /* Report discovered levels to debug log */
-    debug("init_level_loader: found %d .lvl files\n", level_count);
-    for (int i = 0; i < level_count; i++)
-    {
-        debug("  - %s\n", level_paths[i]);
-    }
-
     if (level_count == 0)
     {
-        /* no levels found */
         free(loader_dir);
         loader_dir = NULL;
         return -2;
     }
 
-    /* sort level paths by numeric prefix if present, otherwise lexicographically */
     qsort(level_paths, level_count, sizeof(char *), cmp_level_paths);
 
     initialized = 1;

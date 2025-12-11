@@ -9,7 +9,6 @@
 
 static int debug_fd = -1;
 
-// Helper private function to find and kill pacman at specific position
 static int find_and_kill_pacman(board_t *board, int new_x, int new_y)
 {
     for (int p = 0; p < board->n_pacmans; p++)
@@ -25,16 +24,14 @@ static int find_and_kill_pacman(board_t *board, int new_x, int new_y)
     return VALID_MOVE;
 }
 
-// Helper private function for getting board position index
 static inline int get_board_index(board_t *board, int x, int y)
 {
     return y * board->width + x;
 }
 
-// Helper private function for checking valid position
 static inline int is_valid_position(board_t *board, int x, int y)
 {
-    return (x >= 0 && x < board->width) && (y >= 0 && y < board->height); // Inside of the board boundaries
+    return (x >= 0 && x < board->width && y >= 0 && y < board->height);
 }
 
 void sleep_ms(int milliseconds)
@@ -48,15 +45,12 @@ void sleep_ms(int milliseconds)
 int move_pacman(board_t *board, int pacman_index, command_t *command)
 {
     if (pacman_index < 0 || !board->pacmans[pacman_index].alive)
-    {
-        return DEAD_PACMAN; // Invalid or dead pacman
-    }
+        return DEAD_PACMAN;
 
     pacman_t *pac = &board->pacmans[pacman_index];
     int new_x = pac->pos_x;
     int new_y = pac->pos_y;
 
-    // check passo
     if (pac->waiting > 0)
     {
         pac->waiting -= 1;
@@ -65,49 +59,45 @@ int move_pacman(board_t *board, int pacman_index, command_t *command)
     pac->waiting = pac->passo;
 
     char direction = command->command;
-
     if (direction == 'R')
     {
         char directions[] = {'W', 'S', 'A', 'D'};
         direction = directions[rand() % 4];
     }
 
-    // Calculate new position based on direction
     switch (direction)
     {
-    case 'W': // Up
+    case 'W':
         new_y--;
         break;
-    case 'S': // Down
+    case 'S':
         new_y++;
         break;
-    case 'A': // Left
+    case 'A':
         new_x--;
         break;
-    case 'D': // Right
+    case 'D':
         new_x++;
         break;
-    case 'T': // Wait
+    case 'T':
         if (command->turns_left == 1)
         {
-            pac->current_move += 1; // move on
+            pac->current_move += 1;
             command->turns_left = command->turns;
         }
         else
+        {
             command->turns_left -= 1;
+        }
         return VALID_MOVE;
     default:
-        return INVALID_MOVE; // Invalid direction
-    }
-
-    // Logic for the WASD movement
-    pac->current_move += 1;
-
-    // Check boundaries
-    if (!is_valid_position(board, new_x, new_y))
-    {
         return INVALID_MOVE;
     }
+
+    pac->current_move += 1;
+
+    if (!is_valid_position(board, new_x, new_y))
+        return INVALID_MOVE;
 
     int new_index = get_board_index(board, new_x, new_y);
     int old_index = get_board_index(board, pac->pos_x, pac->pos_y);
@@ -120,20 +110,15 @@ int move_pacman(board_t *board, int pacman_index, command_t *command)
         return REACHED_PORTAL;
     }
 
-    // Check for walls
     if (target_content == 'W')
-    {
         return INVALID_MOVE;
-    }
 
-    // Check for ghosts
     if (target_content == 'M')
     {
         kill_pacman(board, pacman_index);
         return DEAD_PACMAN;
     }
 
-    // Collect points
     if (board->board[new_index].has_dot)
     {
         pac->points++;
@@ -158,16 +143,16 @@ static int move_ghost_charged_direction(board_t *board, ghost_t *ghost, char dir
 
     switch (direction)
     {
-    case 'W': // Up
+    case 'W':
         if (y == 0)
             return INVALID_MOVE;
-        *new_y = 0; // In case there is no colision
+        *new_y = 0;
         for (int i = y - 1; i >= 0; i--)
         {
             char target_content = board->board[get_board_index(board, x, i)].content;
             if (target_content == 'W' || target_content == 'M')
             {
-                *new_y = i + 1; // stop before colision
+                *new_y = i + 1;
                 return VALID_MOVE;
             }
             else if (target_content == 'P')
@@ -178,16 +163,16 @@ static int move_ghost_charged_direction(board_t *board, ghost_t *ghost, char dir
         }
         break;
 
-    case 'S': // Down
+    case 'S':
         if (y == board->height - 1)
             return INVALID_MOVE;
-        *new_y = board->height - 1; // In case there is no colision
+        *new_y = board->height - 1;
         for (int i = y + 1; i < board->height; i++)
         {
             char target_content = board->board[get_board_index(board, x, i)].content;
             if (target_content == 'W' || target_content == 'M')
             {
-                *new_y = i - 1; // stop before colision
+                *new_y = i - 1;
                 return VALID_MOVE;
             }
             if (target_content == 'P')
@@ -198,16 +183,16 @@ static int move_ghost_charged_direction(board_t *board, ghost_t *ghost, char dir
         }
         break;
 
-    case 'A': // Left
+    case 'A':
         if (x == 0)
             return INVALID_MOVE;
-        *new_x = 0; // In case there is no colision
+        *new_x = 0;
         for (int j = x - 1; j >= 0; j--)
         {
             char target_content = board->board[get_board_index(board, j, y)].content;
             if (target_content == 'W' || target_content == 'M')
             {
-                *new_x = j + 1; // stop before colision
+                *new_x = j + 1;
                 return VALID_MOVE;
             }
             if (target_content == 'P')
@@ -218,16 +203,16 @@ static int move_ghost_charged_direction(board_t *board, ghost_t *ghost, char dir
         }
         break;
 
-    case 'D': // Right
+    case 'D':
         if (x == board->width - 1)
             return INVALID_MOVE;
-        *new_x = board->width - 1; // In case there is no colision
+        *new_x = board->width - 1;
         for (int j = x + 1; j < board->width; j++)
         {
             char target_content = board->board[get_board_index(board, j, y)].content;
             if (target_content == 'W' || target_content == 'M')
             {
-                *new_x = j - 1; // stop before colision
+                *new_x = j - 1;
                 return VALID_MOVE;
             }
             if (target_content == 'P')
@@ -264,12 +249,9 @@ int move_ghost_charged(board_t *board, int ghost_index, char direction)
     int old_index = get_board_index(board, ghost->pos_x, ghost->pos_y);
     int new_index = get_board_index(board, new_x, new_y);
 
-    // Update board - clear old position (restore what was there)
-    board->board[old_index].content = ' '; // Or restore the dot if ghost was on one
-    // Update ghost position
+    board->board[old_index].content = ' ';
     ghost->pos_x = new_x;
     ghost->pos_y = new_y;
-    // Update board - set new position
     board->board[new_index].content = 'M';
     return result;
 }
@@ -296,26 +278,25 @@ int move_ghost(board_t *board, int ghost_index, command_t *command)
         direction = directions[rand() % 4];
     }
 
-    // Calculate new position based on direction
     switch (direction)
     {
-    case 'W': // Up
+    case 'W':
         new_y--;
         break;
-    case 'S': // Down
+    case 'S':
         new_y++;
         break;
-    case 'A': // Left
+    case 'A':
         new_x--;
         break;
-    case 'D': // Right
+    case 'D':
         new_x++;
         break;
-    case 'C': // Charge
+    case 'C':
         ghost->current_move += 1;
         ghost->charged = 1;
         return VALID_MOVE;
-    case 'T': // Wait
+    case 'T':
         if (command->turns_left == 1)
         {
             ghost->current_move += 1; // move on
@@ -375,7 +356,6 @@ void kill_pacman(board_t *board, int pacman_index)
     pacman_t *pac = &board->pacmans[pacman_index];
     int index = pac->pos_y * board->width + pac->pos_x;
 
-    // Remove pacman from the board
     board->board[index].content = ' ';
 
     // Mark pacman as dead
