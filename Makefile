@@ -47,7 +47,7 @@ folders:
 
 # Clean object files and executable
 clean:
-	rm -f $(OBJ_DIR)/*.o
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
 	rm -f $(BIN_DIR)/$(TARGET)
 	rm -f *.log
 
