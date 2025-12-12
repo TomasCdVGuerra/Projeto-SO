@@ -66,9 +66,10 @@ int play_board(board_t *game_board)
     {
         command_t c;
         c.command = get_input();
-        if (c.command == '\0')
-            return CONTINUE_PLAY;
         c.turns = 1;
+        c.turns_left = 1;
+        if (c.command == '\0')
+            c.command = 'T';
         play = &c;
     }
     else
@@ -88,23 +89,14 @@ int play_board(board_t *game_board)
     }
 
     barrier_wait(&game_board->turn_barrier);
-
     int result = move_pacman(game_board, 0, play);
-
-    draw_board(game_board, DRAW_MENU);
-    refresh_screen();
-
-    int ret_val = CONTINUE_PLAY;
-    if (result == REACHED_PORTAL)
-        ret_val = NEXT_LEVEL;
-    else if (result == DEAD_PACMAN)
-        ret_val = DEAD_PACMAN;
-    else if (!game_board->pacmans[0].alive)
-        ret_val = DEAD_PACMAN;
-
     barrier_wait(&game_board->turn_barrier);
 
-    return ret_val;
+    if (result == REACHED_PORTAL)
+        return NEXT_LEVEL;
+    if (result == DEAD_PACMAN || !game_board->pacmans[0].alive)
+        return DEAD_PACMAN;
+    return CONTINUE_PLAY;
 }
 
 static int restore_from_backup(board_t *game_board, int *accumulated_points,
@@ -191,9 +183,15 @@ static void cleanup_threads(board_t *game_board)
 
 int main(int argc, char **argv)
 {
+    int use_loader = 0;
+    int accumulated_points = 0;
+    bool end_game = false;
+    board_t game_board;
+    pid_t saved_pid = 0;
+    int saved_pipe_fd = -1;
+
     open_debug_file("debug.log");
 
-    int use_loader = 0;
     if (argc == 2)
     {
         if (init_level_loader(argv[1]) != 0)
@@ -216,14 +214,7 @@ int main(int argc, char **argv)
     }
 
     srand((unsigned int)time(NULL));
-
     terminal_init();
-
-    int accumulated_points = 0;
-    bool end_game = false;
-    board_t game_board;
-    pid_t saved_pid = 0;
-    int saved_pipe_fd = -1;
 
     while (!end_game)
     {

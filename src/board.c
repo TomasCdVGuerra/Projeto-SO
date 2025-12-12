@@ -620,7 +620,7 @@ void debug(const char *format, ...)
                         tmp[tp++] = rev[i];
                 }
                 size_t can = sizeof(out) - off - 1;
-                size_t copy = tp < (int)can ? tp : can;
+                size_t copy = ((size_t)tp < can) ? (size_t)tp : can;
                 memcpy(out + off, tmp, copy);
                 off += copy;
                 p++;
