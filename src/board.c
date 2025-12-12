@@ -661,17 +661,14 @@ void print_board(board_t *board)
 
     char buffer[8192];
     size_t offset = 0;
-    /* Header */
     {
         char tmp[256];
         size_t t = 0;
-        /* === [pid] LEVEL INFO ===\n */
         const char *h1 = "=== [";
         size_t can = sizeof(tmp) - t - 1;
         size_t l = strlen(h1) < can ? strlen(h1) : can;
         memcpy(tmp + t, h1, l);
         t += l;
-        /* pid */
         {
             int pid = getpid();
             char num[32];
@@ -709,7 +706,6 @@ void print_board(board_t *board)
         offset += copy;
     }
 
-    /* Dimensions / Tempo / Pacman file */
     {
         char tmp[256];
         size_t t = 0;
@@ -807,7 +803,6 @@ void print_board(board_t *board)
         offset += c;
     }
 
-    /* Monster files header */
     {
         char tmp[64];
         size_t t = 0;
@@ -860,7 +855,6 @@ void print_board(board_t *board)
             buffer[offset++] = '\n';
     }
 
-    /* Board */
     {
         const char *hdr = "\n=== BOARD ===\n";
         size_t l = strlen(hdr);

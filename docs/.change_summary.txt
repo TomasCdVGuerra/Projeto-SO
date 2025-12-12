@@ -102,7 +102,7 @@ Additional changes (Date: 2025-12-07)
    - Files modified: `src/game.c`
    - Notes:
      - Pressing 'G' while a save exists does nothing; after load or death-restore the saved child exits and the slot clears.
-     - Quickload resumes the saved child, streams state through a pipe, waits for the child to exit, clears `saved_pid`/pipe, and refreshes the screen.
+   - Restore resumes the saved child, streams state through a pipe, waits for the child to exit, clears `saved_pid`/pipe, and refreshes the screen.
      - Pacman death now auto-restores from the saved state if present; otherwise shows game over.
 
 12) Build

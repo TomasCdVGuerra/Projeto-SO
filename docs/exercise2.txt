@@ -62,23 +62,21 @@ Step 4: Parent continues playing
   - Game doesn't pause when saving
   - Parent can die/advance levels while child holds old state
 
-Step 5: Add quickload trigger ('L' key and death)
+Step 5: Add restore trigger (death)
   File: `src/game.c`
   
   What:
-  - In `play_board()`: if 'L' pressed, return `LOAD_BACKUP`
   - In `play_board()`: change death to return `DEAD_PACMAN` (not QUIT_GAME)
   - In main loop: handle `DEAD_PACMAN`:
     - If saved_pid exists: jump to load logic
     - Else: show game over and quit
   
   Why:
-  - 'L' is manual load trigger
   - Death auto-loads if save exists (per assignment)
   - Need to distinguish death from manual quit ('Q')
 
 Step 6: Wake child and receive state
-  File: `src/game.c` in main loop, handling `LOAD_BACKUP`
+  File: `src/game.c` in main loop, restore logic
   
   What:
   - Check if `saved_pid == 0`:
@@ -171,7 +169,6 @@ Step 12: Test quicksave flow
   - Run game, move pacman
   - Press 'G' to save
   - Move more, press 'G' again (should do nothing)
-  - Press 'L' to load (should jump back)
   - Die to ghost (should auto-restore if save exists)
   - Press 'G' after load (should work, creates new save)
   
@@ -207,7 +204,6 @@ Assignment requirements met:
 ✓ Uses fork() to save state
 ✓ Only 1 save at a time (ignore 'G' if save exists)
 ✓ Restores on death if save exists
-✓ Manual load via 'L' key
 ✓ Save slot clears after use (can save again)
 
 Why it was done:

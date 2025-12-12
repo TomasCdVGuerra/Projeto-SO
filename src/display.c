@@ -169,7 +169,6 @@ char get_input()
     case 'D':
     case 'Q':
     case 'G':
-    case 'L':
         debug("get_input: mapped to '%c'\n", (char)ch);
         return (char)ch;
 

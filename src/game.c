@@ -14,7 +14,6 @@
 #define CONTINUE_PLAY 0
 #define NEXT_LEVEL 1
 #define QUIT_GAME 2
-#define LOAD_BACKUP 3
 #define CREATE_BACKUP 4
 
 typedef struct
@@ -84,8 +83,6 @@ int play_board(board_t *game_board)
     {
         if (play->command == 'G')
             return CREATE_BACKUP;
-        if (play->command == 'L')
-            return LOAD_BACKUP;
     }
 
     barrier_wait(&game_board->turn_barrier);
@@ -289,16 +286,6 @@ int main(int argc, char **argv)
                     close(pfd[1]);
                     saved_pid = pid;
                     saved_pipe_fd = pfd[0];
-                }
-                continue;
-            }
-
-            if (result == LOAD_BACKUP)
-            {
-                if (restore_from_backup(&game_board, &accumulated_points,
-                                        &saved_pid, &saved_pipe_fd) == 0)
-                {
-                    screen_refresh(&game_board, DRAW_MENU);
                 }
                 continue;
             }

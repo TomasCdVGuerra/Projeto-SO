@@ -226,10 +226,9 @@ Step 7: Modify main game loop (turn-based sync)
       c.command = get_input();
       if (c.command == '\0') return CONTINUE_PLAY;
       
-      // Handle special commands (Q, G, L)
+      // Handle special commands (Q, G)
       if (c.command == 'Q') return QUIT_GAME;
       if (c.command == 'G') return CREATE_BACKUP;
-      if (c.command == 'L') return LOAD_BACKUP;
       
       // Synchronize turn start - all threads wait here
       barrier_wait(&game_board->turn_barrier);
@@ -329,7 +328,7 @@ Step 11: Handle quicksave in threaded mode
   
   What:
   - Current implementation: Quicksave works outside main game loop
-  - CREATE_BACKUP/LOAD_BACKUP return codes handled before barriers
+  - CREATE_BACKUP return code handled before barriers
   - After restore, threads are re-initialized for the restored level
   
   Note:

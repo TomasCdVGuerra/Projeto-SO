@@ -1,0 +1,60 @@
+parse_lvl_to_board: parsing './test_levels//01_level_empty.lvl'
+=== [24702] LEVEL INFO ===
+Dimensions: 5 x 5
+Tempo: 50
+Pacman file: pacman_01.p
+Monster files (0):
+
+=== BOARD ===
+WWWWW
+W   W
+W   W
+W  PW
+WWWWW
+==================
+parse_lvl_to_board: parsing './test_levels//01_level_with_ghost.lvl'
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=100
+get_input: mapped to 'D'
+get_input: raw ch=115
+get_input: mapped to 'S'
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=103
+get_input: mapped to 'G'
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=100
+get_input: mapped to 'D'
+get_input: raw ch=-1 errno=60
+get_input: raw ch=100
+get_input: mapped to 'D'
+get_input: raw ch=-1 errno=60
+get_input: raw ch=115
+get_input: mapped to 'S'
+get_input: raw ch=115
+get_input: mapped to 'S'
+get_input: raw ch=-1 errno=60
+get_input: raw ch=115
+get_input: mapped to 'S'
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=100
+get_input: mapped to 'D'
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+get_input: raw ch=-1 errno=60
+Killing 0 pacman
+
+get_input: raw ch=-1 errno=60

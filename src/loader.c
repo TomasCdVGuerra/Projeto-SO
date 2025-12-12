@@ -175,7 +175,6 @@ static char *read_file_to_string(const char *path)
         return buf;
     }
 
-    /* fallback to dynamic read */
     size_t cap = 4096;
     char *buf = malloc(cap);
     if (!buf)
@@ -293,7 +292,6 @@ static int parse_behavior(const char *base_dir, const char *filename, int is_pac
         }
         else
         {
-            /* movement command line */
             if (move_idx < MAX_MOVES)
             {
                 command_t cmd;
