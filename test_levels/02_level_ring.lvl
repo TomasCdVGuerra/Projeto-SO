@@ -1,10 +1,17 @@
-DIM 7 7
-TEMPO 80
+DIM 12 12
+TEMPO 150
 
-XXXXXXX
-XoooooX
-XoXXXoX
-XoXoXoX
-XoXXXoX
-Xoooo@X
-XXXXXXX
+MON ghost1.m ghost2.m
+
+XXXXXXXXXXXX
+XooooooooooX
+XooooooooooX
+XoooXXXXoooX
+XoooXooXoooX
+XoooXooXoooX
+XoooXXXXoooX
+XooooooooooX
+XooooooooooX
+Xooooooo@ooX
+XooooooooooX
+XXXXXXXXXXXX
