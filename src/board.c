@@ -11,29 +11,39 @@ static int debug_fd = -1;
 
 static void lock_two_positions(board_t *board, int idx1, int idx2)
 {
-    if (idx1 == idx2)
+    int first = idx1;
+    int second = idx2;
+    if (first > second)
     {
-        pthread_mutex_lock(&board->board[idx1].pos_mutex);
+        int tmp = first;
+        first = second;
+        second = tmp;
     }
-    else if (idx1 < idx2)
+
+    /* Keep lock order stable to avoid deadlock. */
+    pthread_mutex_lock(&board->board[first].pos_mutex);
+    if (second != first)
     {
-        pthread_mutex_lock(&board->board[idx1].pos_mutex);
-        pthread_mutex_lock(&board->board[idx2].pos_mutex);
-    }
-    else
-    {
-        pthread_mutex_lock(&board->board[idx2].pos_mutex);
-        pthread_mutex_lock(&board->board[idx1].pos_mutex);
+        pthread_mutex_lock(&board->board[second].pos_mutex);
     }
 }
 
 static void unlock_two_positions(board_t *board, int idx1, int idx2)
 {
-    pthread_mutex_unlock(&board->board[idx1].pos_mutex);
-    if (idx1 != idx2)
+    int first = idx1;
+    int second = idx2;
+    if (first > second)
     {
-        pthread_mutex_unlock(&board->board[idx2].pos_mutex);
+        int tmp = first;
+        first = second;
+        second = tmp;
     }
+
+    if (second != first)
+    {
+        pthread_mutex_unlock(&board->board[second].pos_mutex);
+    }
+    pthread_mutex_unlock(&board->board[first].pos_mutex);
 }
 
 void barrier_init(simple_barrier_t *barrier, int count)
@@ -50,14 +60,12 @@ void barrier_wait(simple_barrier_t *barrier)
     pthread_mutex_lock(&barrier->mutex);
 
     int my_generation = barrier->generation;
-    barrier->count++;
 
-    if (barrier->count >= barrier->threshold)
+    if (++barrier->count >= barrier->threshold)
     {
         barrier->count = 0;
         barrier->generation++;
         pthread_cond_broadcast(&barrier->cond);
-        pthread_mutex_unlock(&barrier->mutex);
     }
     else
     {
@@ -65,8 +73,9 @@ void barrier_wait(simple_barrier_t *barrier)
         {
             pthread_cond_wait(&barrier->cond, &barrier->mutex);
         }
-        pthread_mutex_unlock(&barrier->mutex);
     }
+
+    pthread_mutex_unlock(&barrier->mutex);
 }
 
 void barrier_destroy(simple_barrier_t *barrier)
@@ -209,7 +218,6 @@ int move_pacman(board_t *board, int pacman_index, command_t *command)
     return VALID_MOVE;
 }
 
-// Helper private function for charged ghost movement in one direction
 static int move_ghost_charged_direction(board_t *board, ghost_t *ghost, char direction, int *new_x, int *new_y)
 {
     int x = ghost->pos_x;
@@ -313,7 +321,7 @@ int move_ghost_charged(board_t *board, int ghost_index, char direction)
     int new_x = x;
     int new_y = y;
 
-    ghost->charged = 0; // uncharge
+    ghost->charged = 0;
     int result = move_ghost_charged_direction(board, ghost, direction, &new_x, &new_y);
     if (result == INVALID_MOVE)
     {
@@ -321,7 +329,6 @@ int move_ghost_charged(board_t *board, int ghost_index, char direction)
         return INVALID_MOVE;
     }
 
-    // Get board indices
     int old_index = get_board_index(board, ghost->pos_x, ghost->pos_y);
     int new_index = get_board_index(board, new_x, new_y);
 
@@ -343,7 +350,6 @@ int move_ghost(board_t *board, int ghost_index, command_t *command)
     int new_x = ghost->pos_x;
     int new_y = ghost->pos_y;
 
-    // check passo
     if (ghost->waiting > 0)
     {
         ghost->waiting -= 1;
@@ -380,28 +386,24 @@ int move_ghost(board_t *board, int ghost_index, command_t *command)
     case 'T':
         if (command->turns_left == 1)
         {
-            ghost->current_move += 1; // move on
+            ghost->current_move += 1;
             command->turns_left = command->turns;
         }
         else
             command->turns_left -= 1;
         return VALID_MOVE;
     default:
-        return INVALID_MOVE; // Invalid direction
+        return INVALID_MOVE;
     }
-
-    // Logic for the WASD movement
     ghost->current_move++;
     if (ghost->charged)
         return move_ghost_charged(board, ghost_index, direction);
 
-    // Check boundaries
     if (!is_valid_position(board, new_x, new_y))
     {
         return INVALID_MOVE;
     }
 
-    // Check board position
     int new_index = get_board_index(board, new_x, new_y);
     int old_index = get_board_index(board, ghost->pos_x, ghost->pos_y);
 
@@ -409,7 +411,6 @@ int move_ghost(board_t *board, int ghost_index, command_t *command)
 
     char target_content = board->board[new_index].content;
 
-    // Check for walls and ghosts
     if (target_content == 'W' || target_content == 'M')
     {
         unlock_two_positions(board, old_index, new_index);
@@ -417,20 +418,16 @@ int move_ghost(board_t *board, int ghost_index, command_t *command)
     }
 
     int result = VALID_MOVE;
-    // Check for pacman
     if (target_content == 'P')
     {
         result = find_and_kill_pacman(board, new_x, new_y);
     }
 
-    // Update board - clear old position (restore what was there)
-    board->board[old_index].content = ' '; // Or restore the dot if ghost was on one
+    board->board[old_index].content = ' ';
 
-    // Update ghost position
     ghost->pos_x = new_x;
     ghost->pos_y = new_y;
 
-    // Update board - set new position
     board->board[new_index].content = 'M';
 
     unlock_two_positions(board, old_index, new_index);
@@ -446,14 +443,12 @@ void kill_pacman(board_t *board, int pacman_index)
 
     board->board[index].content = ' ';
 
-    // Mark pacman as dead
     pac->alive = 0;
 }
 
-// Static Loading
 int load_pacman(board_t *board, int points)
 {
-    board->board[1 * board->width + 1].content = 'P'; // Pacman
+    board->board[1 * board->width + 1].content = 'P';
     board->pacmans[0].pos_x = 1;
     board->pacmans[0].pos_y = 1;
     board->pacmans[0].alive = 1;
@@ -461,11 +456,9 @@ int load_pacman(board_t *board, int points)
     return 0;
 }
 
-// Static Loading
 int load_ghost(board_t *board)
 {
-    // Ghost 0
-    board->board[3 * board->width + 1].content = 'M'; // Monster
+    board->board[3 * board->width + 1].content = 'M';
     board->ghosts[0].pos_x = 1;
     board->ghosts[0].pos_y = 3;
     board->ghosts[0].passo = 0;
@@ -483,15 +476,14 @@ int load_ghost(board_t *board)
         board->ghosts[0].moves[i].turns = 1;
     }
 
-    // Ghost 1
-    board->board[2 * board->width + 4].content = 'M'; // Monster
+    board->board[2 * board->width + 4].content = 'M';
     board->ghosts[1].pos_x = 4;
     board->ghosts[1].pos_y = 2;
     board->ghosts[1].passo = 1;
     board->ghosts[1].waiting = 1;
     board->ghosts[1].current_move = 0;
     board->ghosts[1].n_moves = 1;
-    board->ghosts[1].moves[0].command = 'R'; // Random
+    board->ghosts[1].moves[0].command = 'R';
     board->ghosts[1].moves[0].turns = 1;
 
     return 0;
@@ -667,7 +659,6 @@ void print_board(board_t *board)
         return;
     }
 
-    // Large buffer to accumulate the whole output
     char buffer[8192];
     size_t offset = 0;
     /* Header */

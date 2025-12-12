@@ -6,40 +6,25 @@
 
 int terminal_init()
 {
-    // Initialize ncurses mode
     initscr();
-
-    // Disable line buffering - get characters immediately
     cbreak();
-
-    // Don't echo typed characters to the screen
     noecho();
-
-    // Enable special keys (arrow keys, function keys, etc.)
     keypad(stdscr, TRUE);
-
-    // Make getch() non-blocking (return ERR if no input)
     nodelay(stdscr, TRUE);
-
-    // Hide the cursor
     curs_set(0);
 
-    // Enable color if terminal supports it
     if (has_colors())
     {
         start_color();
-
-        // Define color pairs (foreground, background)
-        init_pair(1, COLOR_YELLOW, COLOR_BLACK);  // Pacman
-        init_pair(2, COLOR_RED, COLOR_BLACK);     // Ghosts
-        init_pair(3, COLOR_BLUE, COLOR_BLACK);    // Walls
-        init_pair(4, COLOR_WHITE, COLOR_BLACK);   // Points/dots
-        init_pair(5, COLOR_GREEN, COLOR_BLACK);   // UI elements
-        init_pair(6, COLOR_MAGENTA, COLOR_BLACK); // Extra
-        init_pair(7, COLOR_CYAN, COLOR_BLACK);    // Extra
+        init_pair(1, COLOR_YELLOW, COLOR_BLACK);
+        init_pair(2, COLOR_RED, COLOR_BLACK);
+        init_pair(3, COLOR_BLUE, COLOR_BLACK);
+        init_pair(4, COLOR_WHITE, COLOR_BLACK);
+        init_pair(5, COLOR_GREEN, COLOR_BLACK);
+        init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
+        init_pair(7, COLOR_CYAN, COLOR_BLACK);
     }
 
-    // Clear the screen
     clear();
 
     return 0;
@@ -47,10 +32,8 @@ int terminal_init()
 
 void draw_board(board_t *board, int mode)
 {
-    // Clear the screen before redrawing
     clear();
 
-    // Draw the border/title
     attron(COLOR_PAIR(5));
     mvprintw(0, 0, "=== PACMAN GAME ===");
     switch (mode)
@@ -68,10 +51,8 @@ void draw_board(board_t *board, int mode)
         break;
     }
 
-    // Starting row for the game board (leave space for UI)
     int start_row = 3;
 
-    // Draw the board
     for (int y = 0; y < board->height; y++)
     {
         for (int x = 0; x < board->width; x++)
@@ -91,31 +72,29 @@ void draw_board(board_t *board, int mode)
                 }
             }
 
-            // Move cursor to position
             move(start_row + y, x);
 
-            // Draw with appropriate color
             switch (ch)
             {
-            case 'W': // Wall
+            case 'W':
                 attron(COLOR_PAIR(3));
                 addch('#');
                 attroff(COLOR_PAIR(3));
                 break;
 
-            case 'P': // Pacman
+            case 'P':
                 attron(COLOR_PAIR(1) | A_BOLD);
                 addch('C');
                 attroff(COLOR_PAIR(1) | A_BOLD);
                 break;
 
-            case 'M': // Monster/Ghost
+            case 'M':
                 attron((COLOR_PAIR(2) | A_BOLD) | ((ghost_charged) ? (A_DIM) : (0)));
                 addch('M');
                 attroff((COLOR_PAIR(2) | A_BOLD) | ((ghost_charged) ? (A_DIM) : (0)));
                 break;
 
-            case ' ': // Empty space
+            case ' ':
                 if (board->board[index].has_portal)
                 {
                     attron(COLOR_PAIR(6));
@@ -139,10 +118,9 @@ void draw_board(board_t *board, int mode)
         }
     }
 
-    // Draw score/status at the bottom
     attron(COLOR_PAIR(5));
     mvprintw(start_row + board->height + 1, 0, "Points: %d",
-             board->pacmans[0].points); // Assuming first pacman for now
+             board->pacmans[0].points);
     attroff(COLOR_PAIR(5));
 }
 
@@ -156,25 +134,22 @@ void draw(char c, int colour_i, int pos_x, int pos_y)
 
 void refresh_screen()
 {
-    // Update the physical screen with the virtual screen
     refresh();
 }
 
 char get_input()
 {
-    // Get a character from the keyboard
     int ch = getch();
 
     if (ch == ERR)
     {
         int err = errno;
         debug("get_input: raw ch=%d errno=%d\n", ch, err);
-        return '\0'; // No input
+        return '\0';
     }
 
     debug("get_input: raw ch=%d\n", ch);
 
-    /* Map arrow keys to WASD for convenience */
     if (ch == KEY_UP)
         return 'W';
     if (ch == KEY_DOWN)
@@ -205,6 +180,5 @@ char get_input()
 
 void terminal_cleanup()
 {
-    // Restore terminal settings and clean up ncurses
     endwin();
 }

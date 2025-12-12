@@ -9,6 +9,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdbool.h>
 
 #define CONTINUE_PLAY 0
 #define NEXT_LEVEL 1
