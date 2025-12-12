@@ -22,6 +22,48 @@ typedef struct
     int ghost_index;
 } ghost_thread_args_t;
 
+static int write_all(int fd, const void *buf, size_t n)
+{
+    const char *p = (const char *)buf;
+    size_t left = n;
+    while (left > 0)
+    {
+        ssize_t w = write(fd, p, left);
+        if (w < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+        if (w == 0)
+            return -1;
+        p += (size_t)w;
+        left -= (size_t)w;
+    }
+    return 0;
+}
+
+static int read_all(int fd, void *buf, size_t n)
+{
+    char *p = (char *)buf;
+    size_t left = n;
+    while (left > 0)
+    {
+        ssize_t r = read(fd, p, left);
+        if (r < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+        if (r == 0)
+            return -1;
+        p += (size_t)r;
+        left -= (size_t)r;
+    }
+    return 0;
+}
+
 void *ghost_worker(void *arg)
 {
     ghost_thread_args_t *args = (ghost_thread_args_t *)arg;
@@ -85,8 +127,10 @@ int play_board(board_t *game_board)
             return CREATE_BACKUP;
     }
 
+    /* Signal turn start: all threads wake and move in parallel */
     barrier_wait(&game_board->turn_barrier);
     int result = move_pacman(game_board, 0, play);
+    /* Wait for all movements to complete before rendering */
     barrier_wait(&game_board->turn_barrier);
 
     if (result == REACHED_PORTAL)
@@ -102,16 +146,19 @@ static int restore_from_backup(board_t *game_board, int *accumulated_points,
     if (*saved_pid == 0)
         return -1;
 
+    debug("restore_from_backup: resume pid=%d\n", *saved_pid);
+
     kill(*saved_pid, SIGCONT);
 
     board_t temp_board;
-    if (read(*saved_pipe_fd, &temp_board, sizeof(board_t)) != sizeof(board_t))
+    if (read_all(*saved_pipe_fd, &temp_board, sizeof(board_t)) != 0)
     {
         kill(*saved_pid, SIGKILL);
         waitpid(*saved_pid, NULL, 0);
         close(*saved_pipe_fd);
         *saved_pid = 0;
         *saved_pipe_fd = -1;
+        debug("restore_from_backup: read board header failed\n");
         return -1;
     }
 
@@ -120,29 +167,66 @@ static int restore_from_backup(board_t *game_board, int *accumulated_points,
 
     int board_size = game_board->width * game_board->height;
     game_board->board = malloc(board_size * sizeof(board_pos_t));
-    read(*saved_pipe_fd, game_board->board, board_size * sizeof(board_pos_t));
+    if (!game_board->board)
+        return -1;
+    if (read_all(*saved_pipe_fd, game_board->board, board_size * sizeof(board_pos_t)) != 0)
+    {
+        debug("restore_from_backup: read board cells failed\n");
+        return -1;
+    }
 
     for (int i = 0; i < board_size; i++)
     {
+        /* Never reuse mutex state coming from the saved snapshot.
+         * The bytes read from the pipe may represent a locked/busy mutex.
+         */
+        memset(&game_board->board[i].pos_mutex, 0, sizeof(pthread_mutex_t));
         pthread_mutex_init(&game_board->board[i].pos_mutex, NULL);
     }
 
     game_board->pacmans = malloc(game_board->n_pacmans * sizeof(pacman_t));
-    read(*saved_pipe_fd, game_board->pacmans, game_board->n_pacmans * sizeof(pacman_t));
+    if (!game_board->pacmans)
+        return -1;
+    if (read_all(*saved_pipe_fd, game_board->pacmans, game_board->n_pacmans * sizeof(pacman_t)) != 0)
+    {
+        debug("restore_from_backup: read pacmans failed\n");
+        return -1;
+    }
 
     game_board->ghosts = malloc(game_board->n_ghosts * sizeof(ghost_t));
-    read(*saved_pipe_fd, game_board->ghosts, game_board->n_ghosts * sizeof(ghost_t));
+    if (!game_board->ghosts)
+        return -1;
+    if (read_all(*saved_pipe_fd, game_board->ghosts, game_board->n_ghosts * sizeof(ghost_t)) != 0)
+    {
+        debug("restore_from_backup: read ghosts failed\n");
+        return -1;
+    }
 
-    read(*saved_pipe_fd, accumulated_points, sizeof(int));
+    if (read_all(*saved_pipe_fd, accumulated_points, sizeof(int)) != 0)
+    {
+        debug("restore_from_backup: read points failed\n");
+        return -1;
+    }
 
     int lvl;
-    read(*saved_pipe_fd, &lvl, sizeof(int));
+    if (read_all(*saved_pipe_fd, &lvl, sizeof(int)) != 0)
+    {
+        debug("restore_from_backup: read level idx failed\n");
+        return -1;
+    }
     set_current_level(lvl);
 
     waitpid(*saved_pid, NULL, 0);
     close(*saved_pipe_fd);
     *saved_pid = 0;
     *saved_pipe_fd = -1;
+
+    /* Ensure threading primitives get re-initialized after restore. */
+    memset(&game_board->turn_barrier, 0, sizeof(simple_barrier_t));
+    game_board->ghost_threads = NULL;
+    game_board->threads_active = 0;
+
+    debug("restore_from_backup: success, lvl=%d\n", lvl);
 
     return 0;
 }
@@ -213,25 +297,34 @@ int main(int argc, char **argv)
     srand((unsigned int)time(NULL));
     terminal_init();
 
+    bool restored_from_backup = false;
+
     while (!end_game)
     {
-        if (use_loader)
+        bool threads_inited = false;
+
+        if (!restored_from_backup)
         {
-            int result = load_next_level(&game_board, accumulated_points);
-            if (result == 1)
-                break;
-            if (result < 0)
+            if (use_loader)
             {
-                write(STDERR_FILENO, "Error: failed to load level\n", 29);
-                break;
+                int result = load_next_level(&game_board, accumulated_points);
+                if (result == 1)
+                    break;
+                if (result < 0)
+                {
+                    write(STDERR_FILENO, "Error: failed to load level\n", 29);
+                    break;
+                }
+            }
+            else
+            {
+                load_level(&game_board, accumulated_points);
             }
         }
-        else
-        {
-            load_level(&game_board, accumulated_points);
-        }
+        restored_from_backup = false;
 
         init_threads(&game_board);
+        threads_inited = true;
 
         draw_board(&game_board, DRAW_MENU);
         refresh_screen();
@@ -250,7 +343,17 @@ int main(int argc, char **argv)
             if (result == CREATE_BACKUP)
             {
                 if (saved_pid != 0)
+                {
+                    debug("CREATE_BACKUP: saved_pid already %d, skipping\n", saved_pid);
                     continue;
+                }
+
+                /* Take snapshot only with threads stopped to avoid copying live mutex state */
+                if (threads_inited)
+                {
+                    cleanup_threads(&game_board);
+                    threads_inited = false;
+                }
 
                 int pfd[2];
                 if (pipe(pfd) == -1)
@@ -267,16 +370,40 @@ int main(int argc, char **argv)
                     close(pfd[0]);
                     raise(SIGSTOP);
 
-                    write(pfd[1], &game_board, sizeof(board_t));
+                    if (write_all(pfd[1], &game_board, sizeof(board_t)) != 0)
+                    {
+                        close(pfd[1]);
+                        _exit(1);
+                    }
 
                     int board_size = game_board.width * game_board.height;
-                    write(pfd[1], game_board.board, board_size * sizeof(board_pos_t));
-                    write(pfd[1], game_board.pacmans, game_board.n_pacmans * sizeof(pacman_t));
-                    write(pfd[1], game_board.ghosts, game_board.n_ghosts * sizeof(ghost_t));
-                    write(pfd[1], &accumulated_points, sizeof(int));
+                    if (write_all(pfd[1], game_board.board, board_size * sizeof(board_pos_t)) != 0)
+                    {
+                        close(pfd[1]);
+                        _exit(1);
+                    }
+                    if (write_all(pfd[1], game_board.pacmans, game_board.n_pacmans * sizeof(pacman_t)) != 0)
+                    {
+                        close(pfd[1]);
+                        _exit(1);
+                    }
+                    if (write_all(pfd[1], game_board.ghosts, game_board.n_ghosts * sizeof(ghost_t)) != 0)
+                    {
+                        close(pfd[1]);
+                        _exit(1);
+                    }
+                    if (write_all(pfd[1], &accumulated_points, sizeof(int)) != 0)
+                    {
+                        close(pfd[1]);
+                        _exit(1);
+                    }
 
                     int lvl = get_current_level();
-                    write(pfd[1], &lvl, sizeof(int));
+                    if (write_all(pfd[1], &lvl, sizeof(int)) != 0)
+                    {
+                        close(pfd[1]);
+                        _exit(1);
+                    }
 
                     close(pfd[1]);
                     _exit(0);
@@ -286,7 +413,12 @@ int main(int argc, char **argv)
                     close(pfd[1]);
                     saved_pid = pid;
                     saved_pipe_fd = pfd[0];
+                    debug("CREATE_BACKUP: saved new pid=%d\n", saved_pid);
                 }
+
+                /* Restart threads after snapshot */
+                init_threads(&game_board);
+                threads_inited = true;
                 continue;
             }
             if (result == QUIT_GAME)
@@ -299,29 +431,55 @@ int main(int argc, char **argv)
 
             if (result == DEAD_PACMAN)
             {
-                if (saved_pid != 0 &&
-                    restore_from_backup(&game_board, &accumulated_points,
-                                        &saved_pid, &saved_pipe_fd) == 0)
+                debug("DEAD_PACMAN: saved_pid=%d\n", saved_pid);
+                if (saved_pid != 0)
                 {
-                    screen_refresh(&game_board, DRAW_MENU);
+                    if (threads_inited)
+                    {
+                        cleanup_threads(&game_board);
+                        threads_inited = false;
+                    }
+
+                    debug("DEAD_PACMAN: attempting restore\n");
+                    if (restore_from_backup(&game_board, &accumulated_points,
+                                            &saved_pid, &saved_pipe_fd) == 0)
+                    {
+                        debug("DEAD_PACMAN: restore ok\n");
+                        /* Cross-level restore: break out and reload the restored level */
+                        restored_from_backup = true;
+                        break;
+                    }
+                    debug("DEAD_PACMAN: restore failed\n");
                 }
-                else
-                {
-                    screen_refresh(&game_board, DRAW_GAME_OVER);
-                    sleep_ms(game_board.tempo);
-                    end_game = true;
-                    break;
-                }
-                continue;
+
+                screen_refresh(&game_board, DRAW_GAME_OVER);
+                sleep_ms(game_board.tempo);
+                end_game = true;
+                break;
             }
 
             screen_refresh(&game_board, DRAW_MENU);
             accumulated_points = game_board.pacmans[0].points;
         }
 
-        cleanup_threads(&game_board);
-        print_board(&game_board);
-        unload_level(&game_board);
+        if (threads_inited)
+        {
+            cleanup_threads(&game_board);
+            threads_inited = false;
+        }
+
+        if (!restored_from_backup)
+        {
+            /* Normal level completion or game over - clean up and move on */
+            print_board(&game_board);
+            unload_level(&game_board);
+        }
+        else
+        {
+            /* Restored from backup - board is already cleaned and reloaded, just display it */
+            draw_board(&game_board, DRAW_MENU);
+            refresh_screen();
+        }
     }
 
     if (saved_pid != 0)
@@ -336,5 +494,6 @@ int main(int argc, char **argv)
     cleanup_level_loader();
     close_debug_file();
 
+    debug("Main: returning 0\n");
     return 0;
 }

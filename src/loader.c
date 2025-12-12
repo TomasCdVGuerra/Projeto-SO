@@ -12,11 +12,12 @@
 #include <ctype.h>
 #include <limits.h>
 
-#define MAX_LEVEL_FILES 128
+#define MAX_LEVEL_FILES MAX_LEVELS
 
 static int initialized = 0;
 static char *loader_dir = NULL;
-static char *level_paths[MAX_LEVEL_FILES];
+static char **level_paths = NULL;
+static int level_paths_cap = 0;
 static int level_count = 0;
 static int current_level = 0;
 
@@ -87,8 +88,17 @@ int init_level_loader(const char *dirpath)
             continue;
         if (has_suffix(ent->d_name, ".lvl"))
         {
-            if (level_count >= MAX_LEVEL_FILES)
-                break;
+            /* Dynamic expansion to read "infinite" files */
+            if (level_count >= level_paths_cap)
+            {
+                int new_cap = (level_paths_cap == 0) ? 32 : level_paths_cap * 2;
+                char **new_paths = realloc(level_paths, new_cap * sizeof(char *));
+                if (!new_paths)
+                    continue; /* Memory allocation failed, skip this file */
+                level_paths = new_paths;
+                level_paths_cap = new_cap;
+            }
+
             size_t len = strlen(dirpath) + 1 + strlen(ent->d_name) + 1;
             char *full = malloc(len);
             if (!full)
@@ -112,6 +122,17 @@ int init_level_loader(const char *dirpath)
 
     qsort(level_paths, level_count, sizeof(char *), cmp_level_paths);
 
+    /* Enforce MAX_LEVELS limit: keep only the first MAX_LEVELS, free the rest */
+    if (level_count > MAX_LEVELS)
+    {
+        for (int i = MAX_LEVELS; i < level_count; i++)
+        {
+            free(level_paths[i]);
+            level_paths[i] = NULL;
+        }
+        level_count = MAX_LEVELS;
+    }
+
     initialized = 1;
     current_level = 0;
     return 0;
@@ -124,12 +145,17 @@ void reset_level_iterator(void)
 
 void cleanup_level_loader(void)
 {
-    for (int i = 0; i < level_count; i++)
+    if (level_paths)
     {
-        free(level_paths[i]);
-        level_paths[i] = NULL;
+        for (int i = 0; i < level_count; i++)
+        {
+            free(level_paths[i]);
+        }
+        free(level_paths);
+        level_paths = NULL;
     }
     level_count = 0;
+    level_paths_cap = 0;
     current_level = 0;
     if (loader_dir)
     {

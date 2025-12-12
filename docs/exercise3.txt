@@ -327,19 +327,18 @@ Step 11: Handle quicksave in threaded mode
   File: `src/game.c`
   
   What:
-  - Current implementation: Quicksave works outside main game loop
-  - CREATE_BACKUP return code handled before barriers
-  - After restore, threads are re-initialized for the restored level
-  
-  Note:
-  - Saving happens between turns (not during barrier sync)
-  - Restore calls init_threads() after loading board from pipe
-  - Per-position mutexes re-initialized after restore
+  - **Save (Fork)**:
+    - Before `fork()`: Call `cleanup_threads()` to stop all ghosts and release locks.
+    - After `fork()` (in parent): Call `init_threads()` to restart them.
+  - **Restore**:
+    - Before restore: Call `cleanup_threads()`.
+    - During restore: Re-initialize all `pos_mutex` fields in the board array.
+    - After restore: Call `init_threads()`.
   
   Why:
-  - Forking with active threads is complex (threads don't copy)
-  - Current approach: save/restore between levels is safe
-  - Threads are stopped/restarted around restore operation
+  - **Thread Safety**: Forking with active threads is dangerous because mutex states are copied but owner threads are not. This leads to "ghost locks" in the child process.
+  - **Solution**: Ensure the board is "quiescent" (no active threads, no held locks) before taking the snapshot.
+  - **Recovery**: Even with precautions, we explicitly reset mutexes on restore to guarantee a clean slate.
 
 Step 12: Test threading behavior
   What:

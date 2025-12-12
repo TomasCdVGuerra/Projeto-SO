@@ -25,16 +25,19 @@ Step 2: Fork to create saved state
   - Check if `saved_pid != 0` (existing save):
     - If yes: do nothing (ignore the 'G'), continue game
     - If no: proceed to create save
+  - **CRITICAL**: Call `cleanup_threads(&game_board)` to stop all ghost threads.
   - Create pipe with `pipe(pfd)` for later communication
   - Call `fork()`:
     - Parent gets child's PID
     - Child gets 0
   - Store child PID in `saved_pid`
   - Store read end of pipe in `saved_pipe_fd`
+  - **CRITICAL**: Call `init_threads(&game_board)` in parent to restart threads.
   
   Why:
   - Assignment requires only 1 save at a time
   - fork() creates process with identical memory (board, entities, score)
+  - **Thread Safety**: Forking with active threads copies locked mutexes to the child. Since the owner thread doesn't exist in the child, these mutexes remain permanently locked, causing deadlocks on restore. Stopping threads ensures a clean, unlocked state.
   - Pipe will be used later for child to send state back
 
 Step 3: Suspend child to hold state
@@ -81,35 +84,40 @@ Step 6: Wake child and receive state
   What:
   - Check if `saved_pid == 0`:
     - If yes: no save exists, just continue
+  - **CRITICAL**: Call `cleanup_threads(&game_board)` to stop current threads.
   - Send `SIGCONT` to child with `kill(saved_pid, SIGCONT)`
   - Child wakes up at the point after `raise(SIGSTOP)`
   
   Why:
   - SIGCONT resumes child execution
   - Child will now write saved state to pipe
+  - Stopping threads prevents interference during the restore process
 
 Step 7: Child writes state to pipe
   File: `src/game.c` child code after wake
   
   What:
-  - Write board struct: `write(pfd[1], &game_board, sizeof(board_t))`
-  - Write board array: `write(pfd[1], game_board.board, width*height*sizeof(board_pos_t))`
-  - Write pacmans array: `write(pfd[1], game_board.pacmans, n_pacmans*sizeof(pacman_t))`
-  - Write ghosts array: `write(pfd[1], game_board.ghosts, n_ghosts*sizeof(ghost_t))`
-  - Write accumulated_points: `write(pfd[1], &accumulated_points, sizeof(int))`
-  - Write current_level: `write(pfd[1], &lvl, sizeof(int))`
+  - Use helper `write_all()` to handle partial writes and EINTR.
+  - Write board struct: `write_all(pfd[1], &game_board, sizeof(board_t))`
+  - Write board array: `write_all(pfd[1], game_board.board, width*height*sizeof(board_pos_t))`
+  - Write pacmans array: `write_all(pfd[1], game_board.pacmans, n_pacmans*sizeof(pacman_t))`
+  - Write ghosts array: `write_all(pfd[1], game_board.ghosts, n_ghosts*sizeof(ghost_t))`
+  - Write accumulated_points: `write_all(pfd[1], &accumulated_points, sizeof(int))`
+  - Write current_level: `write_all(pfd[1], &lvl, sizeof(int))`
   - Close pipe write end
   - Call `_exit(0)` to terminate
   
   Why:
   - Pipe is IPC channel from child to parent
   - Must send struct + all dynamic arrays separately
+  - `write_all` ensures data integrity even with large buffers
   - _exit() avoids flushing parent's stdio buffers (if any)
 
 Step 8: Parent reads state from pipe
   File: `src/game.c` parent load logic
   
   What:
+  - Use helper `read_all()` for all reads.
   - Read board struct into temp variable
   - Call `unload_level(&game_board)` to free current level
   - Copy temp board struct to `game_board`
@@ -118,12 +126,15 @@ Step 8: Parent reads state from pipe
     - `game_board.pacmans = malloc(...)`
     - `game_board.ghosts = malloc(...)`
   - Read each array from pipe into new allocations
+  - **CRITICAL**: Iterate through `game_board.board` and re-initialize every `pos_mutex` (memset to 0 + `pthread_mutex_init`).
   - Read accumulated_points
   - Read level index, call `set_current_level(lvl)`
+  - **CRITICAL**: Call `init_threads(&game_board)` to restart threads.
   
   Why:
   - board_t contains pointers; can't just copy struct
   - Must free old arrays to avoid memory leak
+  - **Mutex Safety**: Mutexes read from the pipe might be in a locked state (from the snapshot). They must be reset to a clean, unlocked state before new threads use them.
   - Allocate new arrays, then populate from pipe data
 
 Step 9: Clean up saved child
