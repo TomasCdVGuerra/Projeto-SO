@@ -1,7 +1,7 @@
 # Compiler variables
 CC = gcc
 CFLAGS = -g -Wall -Wextra -Werror -std=c17 -D_POSIX_C_SOURCE=200809L
-LDFLAGS = -lncurses
+LDFLAGS = -lncurses -pthread
 
 # Directory variables
 SRC_DIR = src
@@ -13,12 +13,12 @@ INCLUDE_DIR = include
 TARGET = Pacmanist
 
 # Objects variables
-OBJS = game.o display.o board.o parser.o
+OBJS = game.o display.o board.o loader.o
 
 # Dependencies
 display.o = display.h
 board.o = board.h
-parser.o = parser.h
+loader.o = loader.h
 
 # Object files path
 vpath %.o $(OBJ_DIR)
@@ -38,7 +38,7 @@ $(BIN_DIR)/$(TARGET): $(OBJS) | folders
 
 # run the program
 run: pacmanist
-	@./$(BIN_DIR)/$(TARGET) $(ARGS)  # to run use: make run ARGS="<folder>"
+	@./$(BIN_DIR)/$(TARGET)
 
 # Create folders
 folders:
@@ -47,8 +47,9 @@ folders:
 
 # Clean object files and executable
 clean:
-	rm -f $(OBJ_DIR)/*.o
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
 	rm -f $(BIN_DIR)/$(TARGET)
+	rm -f *.log
 
 # indentify targets that do not create files
 .PHONY: all clean run folders

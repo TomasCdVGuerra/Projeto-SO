@@ -87,16 +87,6 @@ int load_level(board_t* board, char* filename, char* dirname, int accumulated_po
 // Unloads levels loaded by load_level
 void unload_level(board_t * board);
 
-// DEBUG FILE
-
-void open_debug_file(char *filename);
-
-void close_debug_file();
-
-void debug(const char * format, ...);
-
 void print_board(board_t* board);
-
-void sleep_ms(int milliseconds);
 
 #endif
