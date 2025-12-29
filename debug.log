@@ -1,0 +1,3 @@
+Host thread started, listening on /tmp/pacman_server_fifo
+Received connection request: /tmp/1_request, /tmp/1_notification
+Game thread picked up client: /tmp/1_request

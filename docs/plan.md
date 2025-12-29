@@ -20,6 +20,7 @@ We recommend using the **teacher's solution (`SO-2526-sol-parte1`)** as the base
 ### Phase 1: Setup & Migration
 1.  Copy `SO-2526-sol-parte1/src/*` to a new working directory (or overwrite `src/` after backing up).
 2.  Verify compilation and execution of the base code.
+3.  Make sure the code is proprerly using the debug log for easy debugging
 
 ### Phase 2: Server Implementation (Exercise 1.1 & 1.2)
 The `PacmanIST` executable will become the server.
