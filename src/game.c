@@ -14,6 +14,8 @@
 #include <fcntl.h>
 #include <poll.h>
 
+#include <stdbool.h>
+
 #define CONTINUE_PLAY 0
 #define NEXT_LEVEL 1
 #define QUIT_GAME 2
@@ -65,6 +67,25 @@ static void cleanup_ipc(void)
     }
 }
 
+static int read_full(int fd, void *buf, size_t n)
+{
+    size_t off = 0;
+    while (off < n)
+    {
+        ssize_t r = read(fd, (char *)buf + off, n - off);
+        if (r == 0)
+            return -1; // EOF
+        if (r < 0)
+        {
+            if (errno == EINTR)
+                continue;
+            return -1;
+        }
+        off += (size_t)r;
+    }
+    return 0;
+}
+
 typedef struct
 {
     board_t *board;
@@ -77,6 +98,7 @@ typedef struct
     int req_fd;
     int notif_fd;
     int ghost_index;
+    int *shutdown_flag;
 } session_args_t;
 
 char get_board_char(board_t *board, int x, int y)
@@ -147,8 +169,6 @@ int send_board_update(int fd, board_t *board)
     return 0;
 }
 
-int thread_shutdown = 0;
-
 int create_backup()
 {
     // clear the terminal for process transition
@@ -185,19 +205,23 @@ void *server_update_thread(void *arg)
     session_args_t *args = (session_args_t *)arg;
     board_t *board = args->board;
     int notif_fd = args->notif_fd;
+    int *shutdown_flag = args->shutdown_flag;
+
+    free(args);
 
     sleep_ms(board->tempo / 2);
     while (true)
     {
         sleep_ms(board->tempo);
         pthread_rwlock_wrlock(&board->state_lock);
-        if (thread_shutdown)
+        if (*shutdown_flag)
         {
             pthread_rwlock_unlock(&board->state_lock);
             pthread_exit(NULL);
         }
         if (send_board_update(notif_fd, board) == -1)
         {
+            *shutdown_flag = 1;
             pthread_rwlock_unlock(&board->state_lock);
             pthread_exit(NULL);
         }
@@ -210,6 +234,9 @@ void *pacman_thread(void *arg)
     session_args_t *args = (session_args_t *)arg;
     board_t *board = args->board;
     int req_fd = args->req_fd;
+    int *shutdown_flag = args->shutdown_flag;
+
+    free(args);
 
     pacman_t *pacman = &board->pacmans[0];
 
@@ -222,6 +249,12 @@ void *pacman_thread(void *arg)
 
     while (true)
     {
+        if (*shutdown_flag)
+        {
+            *retval = QUIT_GAME;
+            return (void *)retval;
+        }
+
         if (!pacman->alive)
         {
             *retval = LOAD_BACKUP;
@@ -333,6 +366,7 @@ void *ghost_thread(void *arg)
     session_args_t *ghost_arg = (session_args_t *)arg;
     board_t *board = ghost_arg->board;
     int ghost_ind = ghost_arg->ghost_index;
+    int *shutdown_flag = ghost_arg->shutdown_flag;
 
     free(ghost_arg);
 
@@ -343,7 +377,7 @@ void *ghost_thread(void *arg)
         sleep_ms(board->tempo * (1 + ghost->passo));
 
         pthread_rwlock_rdlock(&board->state_lock);
-        if (thread_shutdown)
+        if (*shutdown_flag)
         {
             pthread_rwlock_unlock(&board->state_lock);
             pthread_exit(NULL);
@@ -434,6 +468,7 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
 
     int accumulated_points = 0;
     bool end_game = false;
+    int session_shutdown = 0;
     board_t game_board;
 
     // Register board
@@ -462,41 +497,75 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
             continue;
 
         load_level(&game_board, entry->d_name, level_dir_name, accumulated_points);
+        // Ignore server-side scripted moves; keep PAC position/tempo only
+        game_board.pacmans[0].n_moves = 0;
+        game_board.pacmans[0].current_move = 0;
 
         while (true)
         {
             pthread_t update_tid, pacman_tid;
             pthread_t *ghost_tids = malloc(game_board.n_ghosts * sizeof(pthread_t));
-
-            thread_shutdown = 0;
+            if (!ghost_tids)
+            {
+                debug("malloc ghost_tids failed\n");
+                end_game = true;
+                break;
+            }
+            session_shutdown = 0;
 
             // Create Pacman thread
             session_args_t *pac_arg = malloc(sizeof(session_args_t));
+            if (!pac_arg)
+            {
+                free(ghost_tids);
+                debug("malloc pac_arg failed\n");
+                end_game = true;
+                break;
+            }
             pac_arg->board = &game_board;
             pac_arg->req_fd = req_fd;
             pac_arg->notif_fd = notif_fd;
+            pac_arg->shutdown_flag = &session_shutdown;
             pthread_create(&pacman_tid, NULL, pacman_thread, (void *)pac_arg);
 
             // Create Ghost threads
             for (int i = 0; i < game_board.n_ghosts; i++)
             {
                 session_args_t *arg = malloc(sizeof(session_args_t));
+                if (!arg)
+                {
+                    session_shutdown = 1;
+                    pthread_rwlock_wrlock(&game_board.state_lock);
+                    pthread_rwlock_unlock(&game_board.state_lock);
+                    break;
+                }
                 arg->board = &game_board;
                 arg->ghost_index = i;
+                arg->shutdown_flag = &session_shutdown;
                 pthread_create(&ghost_tids[i], NULL, ghost_thread, (void *)arg);
             }
 
             // Create Update thread
             session_args_t *upd_arg = malloc(sizeof(session_args_t));
+            if (!upd_arg)
+            {
+                session_shutdown = 1;
+                pthread_rwlock_wrlock(&game_board.state_lock);
+                pthread_rwlock_unlock(&game_board.state_lock);
+                free(ghost_tids);
+                end_game = true;
+                break;
+            }
             upd_arg->board = &game_board;
             upd_arg->notif_fd = notif_fd;
+            upd_arg->shutdown_flag = &session_shutdown;
             pthread_create(&update_tid, NULL, server_update_thread, (void *)upd_arg);
 
             int *retval;
             pthread_join(pacman_tid, (void **)&retval);
 
             pthread_rwlock_wrlock(&game_board.state_lock);
-            thread_shutdown = 1;
+            session_shutdown = 1;
             pthread_rwlock_unlock(&game_board.state_lock);
 
             pthread_join(update_tid, NULL);
@@ -565,17 +634,21 @@ void *game_thread(void *arg)
 
         debug("Game thread picked up client: %s\n", client.req_pipe_path);
 
-        // Open client pipes
-        int req_fd = open(client.req_pipe_path, O_RDONLY);
+        // Open client pipes - notif first to unblock client waiting
         int notif_fd = open(client.notif_pipe_path, O_WRONLY);
-
-        if (req_fd == -1 || notif_fd == -1)
+        if (notif_fd == -1)
+        {
+            perror("open notif pipe");
+            continue;
+        }
+        
+        int req_fd = open(client.req_pipe_path, O_RDONLY);
+        
+        
+        if (req_fd == -1)
         {
             perror("open client pipes");
-            if (req_fd != -1)
-                close(req_fd);
-            if (notif_fd != -1)
-                close(notif_fd);
+            close(notif_fd);
             continue;
         }
 
@@ -598,6 +671,7 @@ void *game_thread(void *arg)
 
         debug("Starting game session for client %s\n", client.req_pipe_path);
         run_game_session(level_dir_name, req_fd, notif_fd);
+        debug("Finished game session for client %s\n", client.req_pipe_path);
 
         close(req_fd);
         close(notif_fd);
@@ -609,12 +683,7 @@ void *host_thread(void *arg)
 {
     char *fifo_name = (char *)arg;
 
-    // Open dummy writer to keep pipe open?
-    // Or just loop reopen.
-    // Common trick: open O_RDWR, but that might not be standard for FIFOs on all systems.
-    // Let's stick to O_RDONLY and reopen on EOF.
-
-    int server_fd = open(fifo_name, O_RDONLY);
+    int server_fd = open(fifo_name, O_RDWR);
     if (server_fd == -1)
     {
         perror("open server fifo");
@@ -639,18 +708,9 @@ void *host_thread(void *arg)
     while (1)
     {
         char op_code;
-        ssize_t n = read(server_fd, &op_code, sizeof(char));
-
-        if (n == 0)
+        if (read_full(server_fd, &op_code, sizeof(char)) != 0)
         {
-            // EOF, no writers left. Reopen to block again.
-            close(server_fd);
-            server_fd = open(fifo_name, O_RDONLY);
-            continue;
-        }
-
-        if (n < 0)
-        {
+            debug("Host thread failed reading opcode (errno=%d)\n", errno);
             if (errno == EINTR)
             {
                 if (sigusr1_received)
@@ -671,25 +731,12 @@ void *host_thread(void *arg)
             // Note: read might return less than requested, should handle partial reads ideally.
             // For simplicity assuming atomic writes/reads for now or blocking.
 
-            // Helper function read_all is defined in this file?
-            // Yes, static int read_all(int fd, void *buf, size_t n)
-
-            // But read_all is static and defined at the top. I can use it.
-            // Wait, read_all returns -1 on error/EOF.
-
-            // I need to check if read_all is visible. It is static at the top.
-            // But I am inserting host_thread before main, which is at the bottom.
-            // So read_all is visible.
-
-            // However, read_all signature in this file:
-            // static int read_all(int fd, void *buf, size_t n)
-
-            if (read(server_fd, req.req_pipe_path, 40) != 40)
+            if (read_full(server_fd, req.req_pipe_path, 40) != 0)
             {
                 debug("Failed to read req_pipe_path\n");
                 continue;
             }
-            if (read(server_fd, req.notif_pipe_path, 40) != 40)
+            if (read_full(server_fd, req.notif_pipe_path, 40) != 0)
             {
                 debug("Failed to read notif_pipe_path\n");
                 continue;
@@ -778,6 +825,10 @@ int main(int argc, char **argv)
 
     open_debug_file("debug.log");
 
+    debug("Server starting: levels_dir=%s max_games=%d fifo=%s\n", level_dir_name, max_games, fifo_name);
+    printf("Server starting: levels_dir=%s max_games=%d fifo=%s\n", level_dir_name, max_games, fifo_name);
+    fflush(stdout);
+
     // Start Host Thread
     pthread_t host_tid;
     if (pthread_create(&host_tid, NULL, host_thread, (void *)fifo_name) != 0)
@@ -785,6 +836,10 @@ int main(int argc, char **argv)
         perror("pthread_create host");
         return 1;
     }
+
+    debug("Host thread created; launching %d game threads\n", max_games);
+    printf("Server running. Waiting for clients on %s\n", fifo_name);
+    fflush(stdout);
 
     // Start Game Threads
     pthread_t *game_tids = malloc(max_games * sizeof(pthread_t));

@@ -1,3 +1,5 @@
+Server starting: levels_dir=test_levels max_games=2 fifo=/tmp/pacman_server_fifo
+Host thread created; launching 2 game threads
 Host thread started, listening on /tmp/pacman_server_fifo
 Received connection request: /tmp/1_request, /tmp/1_notification
 Game thread picked up client: /tmp/1_request

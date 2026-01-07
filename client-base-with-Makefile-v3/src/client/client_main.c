@@ -17,14 +17,17 @@ bool stop_execution = false;
 int tempo;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static void *receiver_thread(void *arg) {
+static void *receiver_thread(void *arg)
+{
     (void)arg;
 
-    while (true) {
-        
+    while (true)
+    {
+
         Board board = receive_board_update();
 
-        if (!board.data || board.game_over == 1){
+        if (!board.data || board.game_over == 1)
+        {
             pthread_mutex_lock(&mutex);
             stop_execution = true;
             pthread_mutex_unlock(&mutex);
@@ -43,11 +46,13 @@ static void *receiver_thread(void *arg) {
     return NULL;
 }
 
-int main(int argc, char *argv[]) {
-    if (argc != 3 && argc != 4) {
+int main(int argc, char *argv[])
+{
+    if (argc != 3 && argc != 4)
+    {
         fprintf(stderr,
-            "Usage: %s <client_id> <register_pipe> [commands_file]\n",
-            argv[0]);
+                "Usage: %s <client_id> <register_pipe> [commands_file]\n",
+                argv[0]);
         return 1;
     }
 
@@ -56,9 +61,11 @@ int main(int argc, char *argv[]) {
     const char *commands_file = (argc == 4) ? argv[3] : NULL;
 
     FILE *cmd_fp = NULL;
-    if (commands_file) {
+    if (commands_file)
+    {
         cmd_fp = fopen(commands_file, "r");
-        if (!cmd_fp) {
+        if (!cmd_fp)
+        {
             perror("Failed to open commands file");
             return 1;
         }
@@ -75,7 +82,8 @@ int main(int argc, char *argv[]) {
 
     open_debug_file("client-debug.log");
 
-    if (pacman_connect(req_pipe_path, notif_pipe_path, register_pipe) != 0) {
+    if (pacman_connect(req_pipe_path, notif_pipe_path, register_pipe) != 0)
+    {
         perror("Failed to connect to server");
         return 1;
     }
@@ -91,19 +99,21 @@ int main(int argc, char *argv[]) {
     char command;
     int ch;
 
-    while (1) {
-
+    while (1)
+    {
         pthread_mutex_lock(&mutex);
-        if (stop_execution)
-            pthread_mutex_unlock(&mutex);
-            break;
+        bool should_stop = stop_execution;
         pthread_mutex_unlock(&mutex);
+        if (should_stop)
+            break;
 
-        if (cmd_fp) {
+        if (cmd_fp)
+        {
             // Input from file
             ch = fgetc(cmd_fp);
 
-            if (ch == EOF) {
+            if (ch == EOF)
+            {
                 // Restart at the start of the file
                 rewind(cmd_fp);
                 continue;
@@ -115,15 +125,16 @@ int main(int argc, char *argv[]) {
                 continue;
 
             command = toupper(command);
-            
+
             // Wait for tempo, to not overflow pipe with requests
             pthread_mutex_lock(&mutex);
             int wait_for = tempo;
             pthread_mutex_unlock(&mutex);
 
             sleep_ms(wait_for);
-            
-        } else {
+        }
+        else
+        {
             // Interactive input
             command = get_input();
             command = toupper(command);
@@ -132,7 +143,8 @@ int main(int argc, char *argv[]) {
         if (command == '\0')
             continue;
 
-        if (command == 'Q') {
+        if (command == 'Q')
+        {
             debug("Client pressed 'Q', quitting game\n");
             break;
         }
@@ -140,7 +152,6 @@ int main(int argc, char *argv[]) {
         debug("Command: %c\n", command);
 
         pacman_play(command);
-
     }
 
     pacman_disconnect();

@@ -24,10 +24,16 @@ parser.o = parser.h
 vpath %.o $(OBJ_DIR)
 vpath %.c $(SRC_DIR)
 
-# Make targets
-all: pacmanist
+# Subproject directories
+CLIENT_SUBDIR = client-base-with-Makefile-v3
 
-pacmanist: $(BIN_DIR)/$(TARGET)
+# Make targets
+all: server client
+
+server: $(BIN_DIR)/$(TARGET)
+
+client:
+	$(MAKE) -C $(CLIENT_SUBDIR) all
 
 $(BIN_DIR)/$(TARGET): $(OBJS) | folders
 	$(CC) $(CFLAGS) $(SLEEP) $(addprefix $(OBJ_DIR)/,$(OBJS)) -o $@ $(LDFLAGS)
@@ -49,6 +55,7 @@ folders:
 clean:
 	rm -f $(OBJ_DIR)/*.o
 	rm -f $(BIN_DIR)/$(TARGET)
+	$(MAKE) -C $(CLIENT_SUBDIR) clean
 
 # indentify targets that do not create files
-.PHONY: all clean run folders
+.PHONY: all clean run folders server client

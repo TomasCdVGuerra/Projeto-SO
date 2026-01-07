@@ -6,6 +6,13 @@
 O jogo implementa um sistema de agentes (Pacman e monstros) que se movem num tabuleiro, com o objetivo de coletar pontos enquanto evitam os monstros.
 O Jogo tem de correr em Linux Ubuntu 24.04 (arquitetura x86_64)
 
+### Notas da Parte 2 (Servidor/Cliente)
+- `bin/Pacmanist` (servidor) aceita `./Pacmanist <levels_dir> <max_games> <fifo_registo>` e corre indefinidamente até receber sinal (Ctrl+C / SIGINT).
+- `client-base-with-Makefile-v3/bin/client` usa um único ficheiro de movimentos do Pacman fornecido pelo utilizador; esse ficheiro aplica-se a **todos** os níveis.
+- As linhas `PAC` dos `.lvl` continuam obrigatórias para posição inicial e atraso base do Pacman; o servidor ignora comandos de movimento locais do `.p` no servidor.
+- O servidor envia o estado do tabuleiro periodicamente a cada `TEMPO`; o cliente redesenha imediatamente ao receber.
+- Comando `T` pode ser ignorado na Parte 2; tecla `Q` é tratada pelo cliente chamando `pacman_disconnect`, que envia o opcode de disconnect.
+
 ## Estrutura do Projeto
 
 ### Ficheiros Principais
