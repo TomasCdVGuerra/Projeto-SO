@@ -4,7 +4,7 @@
 
 **Pacmanist** é um jogo inspirado no clássico Pacman, desenvolvido como código base do projeto da disciplina de Sistemas Operativos (SO-25/26). 
 O jogo implementa um sistema de agentes (Pacman e monstros) que se movem num tabuleiro, com o objetivo de coletar pontos enquanto evitam os monstros.
-O Jogo tem de correr em Linux Ubuntu 20.04 LTS
+O Jogo tem de correr em Linux Ubuntu 24.04 (arquitetura x86_64)
 
 ## Estrutura do Projeto
 
