@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <errno.h>
 
 struct Session
 {
@@ -16,6 +17,8 @@ struct Session
   int notif_pipe;
   char req_pipe_path[MAX_PIPE_PATH_LENGTH + 1];
   char notif_pipe_path[MAX_PIPE_PATH_LENGTH + 1];
+  char *board_buf;
+  size_t board_buf_cap;
 };
 
 static struct Session session = {.id = -1};
@@ -70,25 +73,37 @@ int pacman_connect(char const *req_pipe_path, char const *notif_pipe_path, char 
     return 1;
   }
 
+  // Open req pipe before waiting for confirmation.
+  // Otherwise we can deadlock if the server waits to open/read the req FIFO
+  // while the client waits for the confirmation.
+  session.req_pipe = open(req_pipe_path, O_WRONLY);
+  if (session.req_pipe == -1)
+  {
+    perror("open req pipe");
+    close(session.notif_pipe);
+    session.notif_pipe = -1;
+    return 1;
+  }
+
   // Read confirmation
   char response[2];
   if (read(session.notif_pipe, response, 2) != 2)
   {
     perror("read confirmation");
+    close(session.req_pipe);
+    close(session.notif_pipe);
+    session.req_pipe = -1;
+    session.notif_pipe = -1;
     return 1;
   }
 
   if (response[0] != OP_CODE_CONNECT || response[1] != 0)
   {
     fprintf(stderr, "Connection failed\n");
-    return 1;
-  }
-
-  // Open req pipe
-  session.req_pipe = open(req_pipe_path, O_WRONLY);
-  if (session.req_pipe == -1)
-  {
-    perror("open req pipe");
+    close(session.req_pipe);
+    close(session.notif_pipe);
+    session.req_pipe = -1;
+    session.notif_pipe = -1;
     return 1;
   }
 
@@ -119,6 +134,9 @@ int pacman_disconnect()
   close(session.notif_pipe);
   unlink(session.req_pipe_path);
   unlink(session.notif_pipe_path);
+  free(session.board_buf);
+  session.board_buf = NULL;
+  session.board_buf_cap = 0;
   session.id = -1;
   return 0;
 }
@@ -130,15 +148,17 @@ Board receive_board_update(void)
     return board;
 
   char op_code;
-  if (read(session.notif_pipe, &op_code, 1) <= 0)
+  ssize_t n = read(session.notif_pipe, &op_code, 1);
+  if (n <= 0)
   {
+    debug("receive_board_update: read opcode returned %zd errno=%d\n", n, errno);
     board.game_over = 1; // Disconnected
     return board;
   }
 
   if (op_code != OP_CODE_BOARD)
   {
-    // Unexpected opcode
+    debug("receive_board_update: unexpected opcode=%d\n", (int)op_code);
     return board;
   }
 
@@ -149,7 +169,29 @@ Board receive_board_update(void)
   read(session.notif_pipe, &board.game_over, sizeof(int));
   read(session.notif_pipe, &board.accumulated_points, sizeof(int));
 
-  board.data = malloc(board.width * board.height);
+  debug(
+      "receive_board_update: %dx%d tempo=%d victory=%d game_over=%d points=%d\n",
+      board.width,
+      board.height,
+      board.tempo,
+      board.victory,
+      board.game_over,
+      board.accumulated_points);
+
+  size_t needed = (size_t)board.width * (size_t)board.height;
+  if (needed > session.board_buf_cap)
+  {
+    char *newbuf = realloc(session.board_buf, needed);
+    if (!newbuf)
+    {
+      board.game_over = 1;
+      return board;
+    }
+    session.board_buf = newbuf;
+    session.board_buf_cap = needed;
+  }
+
+  board.data = session.board_buf;
   read(session.notif_pipe, board.data, board.width * board.height);
 
   return board;

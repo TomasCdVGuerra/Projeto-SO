@@ -16,6 +16,7 @@ Board board;
 bool stop_execution = false;
 int tempo;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t screen_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void *receiver_thread(void *arg)
 {
@@ -38,8 +39,10 @@ static void *receiver_thread(void *arg)
         tempo = board.tempo;
         pthread_mutex_unlock(&mutex);
 
+        pthread_mutex_lock(&screen_mutex);
         draw_board_client(board);
         refresh_screen();
+        pthread_mutex_unlock(&screen_mutex);
     }
 
     debug("Returning receiver thread...\n");
@@ -88,13 +91,24 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    pthread_t receiver_thread_id;
-    pthread_create(&receiver_thread_id, NULL, receiver_thread, NULL);
-
+    pthread_mutex_lock(&screen_mutex);
     terminal_init();
-    set_timeout(500);
+    // Non-blocking input so we don't block screen updates while waiting for a key.
+    set_timeout(0);
     draw_board_client(board);
     refresh_screen();
+    pthread_mutex_unlock(&screen_mutex);
+
+    pthread_t receiver_thread_id;
+    if (pthread_create(&receiver_thread_id, NULL, receiver_thread, NULL) != 0)
+    {
+        perror("pthread_create(receiver_thread)");
+        pacman_disconnect();
+        pthread_mutex_lock(&screen_mutex);
+        terminal_cleanup();
+        pthread_mutex_unlock(&screen_mutex);
+        return 1;
+    }
 
     char command;
     int ch;
@@ -136,8 +150,16 @@ int main(int argc, char *argv[])
         else
         {
             // Interactive input
+            pthread_mutex_lock(&screen_mutex);
             command = get_input();
+            pthread_mutex_unlock(&screen_mutex);
             command = toupper(command);
+
+            // Avoid busy-looping when no key is pressed.
+            if (command == '\0')
+            {
+                sleep_ms(10);
+            }
         }
 
         if (command == '\0')
@@ -163,7 +185,11 @@ int main(int argc, char *argv[])
 
     pthread_mutex_destroy(&mutex);
 
+    pthread_mutex_destroy(&screen_mutex);
+
+    pthread_mutex_lock(&screen_mutex);
     terminal_cleanup();
+    pthread_mutex_unlock(&screen_mutex);
 
     return 0;
 }

@@ -13,6 +13,33 @@ O Jogo tem de correr em Linux Ubuntu 24.04 (arquitetura x86_64)
 - O servidor envia o estado do tabuleiro periodicamente a cada `TEMPO`; o cliente redesenha imediatamente ao receber.
 - Comando `T` pode ser ignorado na Parte 2; tecla `Q` é tratada pelo cliente chamando `pacman_disconnect`, que envia o opcode de disconnect.
 
+## Regras e Diretrizes do Projeto (Resumo do Instrutor)
+1. **Arquitetura & Transição**
+   - **Parte 2:** Sistema cliente-servidor distribuído.
+   - **Base:** Usa a solução do docente (`SO-2526-sol-parte1`) como código base, descartando a implementação pessoal da Parte 1.
+   - **Plataforma:** Obrigatório correr em Ubuntu 24.04 (x86_64).
+
+2. **Protocolo & IPC**
+   - **Comunicação:** Exclusivamente via Named Pipes (FIFOs).
+   - **Registo:** FIFO conhecido (e.g., `/tmp/pacman_server_fifo`) para pedidos de conexão.
+   - **Sessão:** Par de FIFOs privados por cliente (`req`/`notif`).
+   - **Input:** Proibido "busy waiting" no servidor; usar `poll()` ou `select()`.
+
+3. **Concorrência**
+   - **Servidor Multithreaded:**
+     - Thread Host (aceita conexões).
+     - Threads de Jogo (pool com produtores-consumidores).
+     - Threads de Sessão (Pacman, Fantasmas, Update).
+   - **Sincronização:** Mutexes e Read-Write locks para proteger o estado do jogo.
+
+4. **Regras de Jogo**
+   - **Autoridade:** Servidor mantém o estado; cliente apenas envia comandos (`WASD`, `Q`) e desenha.
+   - **Comandos:** `G` (pausa/save) desativado na Parte 2; `Q` encerra sessão.
+   - **Sinais:** `SIGUSR1` no servidor deve registar o "Top 5" high scores em ficheiro.
+
+5. **Build**
+   - **Makefile:** Deve existir um Makefile único na raiz que compile servido e cliente.
+
 ## Estrutura do Projeto
 
 ### Ficheiros Principais
