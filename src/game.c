@@ -641,10 +641,9 @@ void *game_thread(void *arg)
             perror("open notif pipe");
             continue;
         }
-        
+
         int req_fd = open(client.req_pipe_path, O_RDONLY);
-        
-        
+
         if (req_fd == -1)
         {
             perror("open client pipes");
