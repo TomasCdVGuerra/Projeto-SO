@@ -14,8 +14,21 @@
 #include <semaphore.h>
 #include <fcntl.h>
 #include <poll.h>
+#include <signal.h>
 
 #include <stdbool.h>
+
+static inline int entity_delay_ms(int tempo_ms, int passo)
+{
+    // Keep passo-based pacing but make gameplay more responsive.
+    // Old: tempo_ms * (1 + passo)
+    // New: tempo_ms * (1 + passo) / 2, clamped to at least tempo_ms.
+    long base = (long)tempo_ms * (long)(1 + passo);
+    long scaled = base / 2;
+    if (scaled < tempo_ms)
+        scaled = tempo_ms;
+    return (int)scaled;
+}
 
 #define CONTINUE_PLAY 0
 #define NEXT_LEVEL 1
@@ -43,12 +56,19 @@ sem_t *buffer_empty;
 static char sem_full_name[64];
 static char sem_empty_name[64];
 static char fifo_name_global[256];
+static volatile sig_atomic_t shutdown_requested = 0;
+static int server_fd_global = -1;
 static void cleanup_ipc(void);
-static void sigint_handler(int signo)
+
+static void *signal_wait_thread(void *arg)
 {
-    (void)signo;
-    cleanup_ipc();
-    _exit(1);
+    sigset_t *set = (sigset_t *)arg;
+    int sig = 0;
+    if (sigwait(set, &sig) == 0)
+    {
+        shutdown_requested = 1;
+    }
+    return NULL;
 }
 static void cleanup_ipc(void)
 {
@@ -56,15 +76,18 @@ static void cleanup_ipc(void)
     {
         sem_close(buffer_full);
         sem_unlink(sem_full_name);
+        buffer_full = NULL;
     }
     if (buffer_empty != NULL && buffer_empty != SEM_FAILED)
     {
         sem_close(buffer_empty);
         sem_unlink(sem_empty_name);
+        buffer_empty = NULL;
     }
     if (fifo_name_global[0] != '\0')
     {
         unlink(fifo_name_global);
+        fifo_name_global[0] = '\0';
     }
 }
 
@@ -143,37 +166,17 @@ char get_board_char(board_t *board, int x, int y)
     return ch;
 }
 
-int send_board_update(int fd, board_t *board)
+static int send_board_update_flags(int fd, board_t *board, int victory, int game_over)
 {
     char op_code = OP_CODE_BOARD;
     int width = board->width;
     int height = board->height;
     int tempo = board->tempo;
-
-    int victory = 1;
-    for (int i = 0; i < width * height; i++)
-    {
-        if (board->board[i].has_dot)
-        {
-            victory = 0;
-            break;
-        }
-    }
-
-    int game_over = victory;
     int points = 0;
 
     if (board->n_pacmans > 0)
     {
         points = board->pacmans[0].points;
-        if (!board->pacmans[0].alive)
-        {
-            game_over = 1;
-        }
-    }
-    else
-    {
-        game_over = 1;
     }
 
     ssize_t w = 0;
@@ -216,6 +219,18 @@ int send_board_update(int fd, board_t *board)
         return (w < 0 && errno == EPIPE) ? -1 : 0;
 
     return 0;
+}
+
+int send_board_update(int fd, board_t *board)
+{
+    // Part I semantics: dots are only for scoring; victory is reaching the portal on
+    // the last level (handled by run_game_session). Here we only signal game over
+    // when the pacman is dead or missing.
+    int victory = 0;
+    int game_over = 0;
+    if (board->n_pacmans <= 0 || !board->pacmans[0].alive)
+        game_over = 1;
+    return send_board_update_flags(fd, board, victory, game_over);
 }
 
 int create_backup()
@@ -307,23 +322,33 @@ void *pacman_thread(void *arg)
         (void)fcntl(req_fd, F_SETFL, flags | O_NONBLOCK);
     }
 
+    // Partial-message buffering (opcode + 1 byte payload).
+    unsigned char msg[2];
+    size_t msg_len = 0;
+
     while (true)
     {
-        if (*shutdown_flag)
+        // Avoid data races on shared state: read under the board lock.
+        pthread_rwlock_rdlock(&board->state_lock);
+        int shutting_down = *shutdown_flag;
+        int alive = pacman->alive;
+        pthread_rwlock_unlock(&board->state_lock);
+
+        if (shutting_down)
         {
             debug("pacman_thread: shutdown_flag set -> QUIT_GAME\n");
             *retval = QUIT_GAME;
             return (void *)retval;
         }
 
-        if (!pacman->alive)
+        if (!alive)
         {
             debug("pacman_thread: pacman not alive -> LOAD_BACKUP\n");
             *retval = LOAD_BACKUP;
             return (void *)retval;
         }
 
-        sleep_ms(board->tempo * (1 + pacman->passo));
+        sleep_ms(entity_delay_ms(board->tempo, pacman->passo));
 
         command_t *play = NULL;
         command_t c;
@@ -333,33 +358,40 @@ void *pacman_thread(void *arg)
 
         if (pacman->n_moves == 0)
         {
-            unsigned char op_code = 0;
-            ssize_t n = read(req_fd, &op_code, 1);
-            if (n == 0)
+            // Fill msg[0..1] without desynchronizing on partial reads.
+            while (msg_len < sizeof(msg))
             {
-                debug("pacman_thread: req_fd EOF (client closed request pipe) -> QUIT_GAME\n");
-                *retval = QUIT_GAME;
-                return (void *)retval;
+                ssize_t n = read(req_fd, msg + msg_len, sizeof(msg) - msg_len);
+                if (n == 0)
+                {
+                    debug("pacman_thread: req_fd EOF (client closed request pipe) -> QUIT_GAME\n");
+                    *retval = QUIT_GAME;
+                    return (void *)retval;
+                }
+                if (n < 0)
+                {
+                    if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
+                        break;
+                    debug("pacman_thread: read(req_fd) error errno=%d -> QUIT_GAME\n", errno);
+                    *retval = QUIT_GAME;
+                    return (void *)retval;
+                }
+                msg_len += (size_t)n;
             }
-            if (n < 0)
+
+            if (msg_len < sizeof(msg))
             {
-                if (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)
-                    continue;
-                debug("pacman_thread: read(req_fd) error errno=%d -> QUIT_GAME\n", errno);
-                *retval = QUIT_GAME;
-                return (void *)retval;
+                // Not enough data yet; try again next tick.
+                continue;
             }
+
+            unsigned char op_code = msg[0];
+            unsigned char payload = msg[1];
+            msg_len = 0;
 
             if (op_code == OP_CODE_PLAY)
             {
-                char cmd_char = 0;
-                if (read(req_fd, &cmd_char, 1) != 1)
-                {
-                    // If we read only the opcode (partial message), ignore this tick.
-                    debug("pacman_thread: partial OP_CODE_PLAY (missing cmd byte)\n");
-                    continue;
-                }
-                c.command = cmd_char;
+                c.command = (char)payload;
                 play = &c;
             }
             else if (op_code == OP_CODE_DISCONNECT)
@@ -409,7 +441,7 @@ void *pacman_thread(void *arg)
 
         if (result == DEAD_PACMAN)
         {
-            *retval = LOAD_BACKUP;
+            *retval = QUIT_GAME;
             return (void *)retval;
         }
     }
@@ -428,9 +460,9 @@ void *ghost_thread(void *arg)
 
     while (true)
     {
-        sleep_ms(board->tempo * (1 + ghost->passo));
+        sleep_ms(entity_delay_ms(board->tempo, ghost->passo));
 
-        pthread_rwlock_rdlock(&board->state_lock);
+        pthread_rwlock_wrlock(&board->state_lock);
         if (*shutdown_flag)
         {
             pthread_rwlock_unlock(&board->state_lock);
@@ -441,9 +473,6 @@ void *ghost_thread(void *arg)
         pthread_rwlock_unlock(&board->state_lock);
     }
 }
-
-#include <signal.h>
-
 #define MAX_ACTIVE_GAMES 100
 board_t *active_boards[MAX_ACTIVE_GAMES];
 pthread_mutex_t active_boards_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -470,28 +499,36 @@ int compare_scores(const void *a, const void *b)
 
 void log_top_scores()
 {
+    // Snapshot pointers under the mutex, then read per-board state under each board lock.
+    board_t *boards[MAX_ACTIVE_GAMES];
     pthread_mutex_lock(&active_boards_mutex);
+    for (int i = 0; i < MAX_ACTIVE_GAMES; i++)
+    {
+        boards[i] = active_boards[i];
+    }
+    pthread_mutex_unlock(&active_boards_mutex);
 
     score_entry_t scores[MAX_ACTIVE_GAMES];
     int count = 0;
 
     for (int i = 0; i < MAX_ACTIVE_GAMES; i++)
     {
-        if (active_boards[i] != NULL)
+        if (boards[i] != NULL)
         {
-            // Assuming client ID is not stored in board, using index or just listing scores.
-            // The requirement says "identificados pelo próprio id".
-            // We don't have client ID in board_t.
-            // We can add it or just use a placeholder.
-            // Let's assume we can't easily get the ID without modifying board_t.
-            // I'll just use the index i as ID for now.
+            int points = 0;
+            pthread_rwlock_rdlock(&boards[i]->state_lock);
+            if (boards[i]->n_pacmans > 0)
+            {
+                points = boards[i]->pacmans[0].points;
+            }
+            pthread_rwlock_unlock(&boards[i]->state_lock);
+
+            // We don't currently store a client id in board_t; use slot index as a stable id.
             scores[count].id = i;
-            scores[count].score = active_boards[i]->pacmans[0].points;
+            scores[count].score = points;
             count++;
         }
     }
-
-    pthread_mutex_unlock(&active_boards_mutex);
 
     qsort(scores, count, sizeof(score_entry_t), compare_scores);
 
@@ -511,9 +548,18 @@ void log_top_scores()
     }
 }
 
+static int cmp_level_names(const void *a, const void *b)
+{
+    const char *sa = *(const char *const *)a;
+    const char *sb = *(const char *const *)b;
+    return strcmp(sa, sb);
+}
+
 void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
 {
     debug("run_game_session: entered with dir=%s, req_fd=%d, notif_fd=%d\n", level_dir_name, req_fd, notif_fd);
+    if (shutdown_requested)
+        return;
     DIR *level_dir = opendir(level_dir_name);
     if (level_dir == NULL)
     {
@@ -522,10 +568,51 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
     }
     debug("Level directory opened successfully\n");
 
+    // Build a deterministic list of levels (readdir() order is unspecified).
+    size_t lvl_count = 0;
+    size_t lvl_cap = 0;
+    char **lvl_names = NULL;
+    struct dirent *entry;
+    while ((entry = readdir(level_dir)) != NULL)
+    {
+        if (entry->d_name[0] == '.')
+            continue;
+        char *dot = strrchr(entry->d_name, '.');
+        if (!dot)
+            continue;
+        if (strcmp(dot, ".lvl") != 0)
+            continue;
+
+        if (lvl_count == lvl_cap)
+        {
+            size_t new_cap = (lvl_cap == 0) ? 16 : (lvl_cap * 2);
+            char **new_arr = realloc(lvl_names, new_cap * sizeof(*lvl_names));
+            if (!new_arr)
+                break;
+            lvl_names = new_arr;
+            lvl_cap = new_cap;
+        }
+
+        lvl_names[lvl_count] = strdup(entry->d_name);
+        if (!lvl_names[lvl_count])
+            break;
+        lvl_count++;
+    }
+    closedir(level_dir);
+
+    if (lvl_count == 0)
+    {
+        debug("No .lvl files found in %s\n", level_dir_name);
+        free(lvl_names);
+        return;
+    }
+
+    qsort(lvl_names, lvl_count, sizeof(*lvl_names), cmp_level_names);
+
     int accumulated_points = 0;
     bool end_game = false;
     int session_shutdown = 0;
-    board_t game_board;
+    board_t game_board = (board_t){0};
 
     // Register board
     int board_idx = -1;
@@ -541,19 +628,17 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
     }
     pthread_mutex_unlock(&active_boards_mutex);
 
-    struct dirent *entry;
-    while ((entry = readdir(level_dir)) != NULL && !end_game)
+    for (size_t level_i = 0; level_i < lvl_count && !end_game; level_i++)
     {
-        if (entry->d_name[0] == '.')
-            continue;
-        char *dot = strrchr(entry->d_name, '.');
-        if (!dot)
-            continue;
-        if (strcmp(dot, ".lvl") != 0)
-            continue;
+        if (shutdown_requested)
+        {
+            end_game = true;
+            break;
+        }
+        const char *level_name = lvl_names[level_i];
 
-        debug("Loading level: %s\n", entry->d_name);
-        load_level(&game_board, entry->d_name, level_dir_name, accumulated_points);
+        debug("Loading level: %s\n", level_name);
+        load_level(&game_board, (char *)level_name, level_dir_name, accumulated_points);
         debug("Level loaded successfully\n");
         // Ignore server-side scripted moves; keep PAC position/tempo only
         game_board.pacmans[0].n_moves = 0;
@@ -566,6 +651,10 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
 
         while (true)
         {
+            if (shutdown_requested)
+            {
+                session_shutdown = 1;
+            }
             pthread_t update_tid, pacman_tid;
             pthread_t *ghost_tids = malloc(game_board.n_ghosts * sizeof(pthread_t));
             if (!ghost_tids)
@@ -676,8 +765,22 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
             int result = *retval;
             free(retval);
 
+            if (shutdown_requested)
+            {
+                end_game = true;
+                break;
+            }
+
             if (result == NEXT_LEVEL)
             {
+                // Portal reached: advance level, or if this was the last level, end with victory.
+                if (level_i + 1 >= lvl_count)
+                {
+                    pthread_rwlock_rdlock(&game_board.state_lock);
+                    (void)send_board_update_flags(notif_fd, &game_board, 1, 1);
+                    pthread_rwlock_unlock(&game_board.state_lock);
+                    end_game = true;
+                }
                 sleep_ms(game_board.tempo);
                 break;
             }
@@ -690,19 +793,19 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
 
             if (result == LOAD_BACKUP)
             {
-                unload_level(&game_board);
-                load_level(&game_board, entry->d_name, level_dir_name, accumulated_points);
-                // Ignore server-side scripted moves; keep PAC position/tempo only
-                game_board.pacmans[0].n_moves = 0;
-                game_board.pacmans[0].current_move = 0;
-                continue;
+                // With "G" disabled in Part 2, a Pacman death terminates the game.
+                end_game = true;
+                break;
             }
 
             accumulated_points = game_board.pacmans[0].points;
         }
         unload_level(&game_board);
     }
-    closedir(level_dir);
+
+    for (size_t i = 0; i < lvl_count; i++)
+        free(lvl_names[i]);
+    free(lvl_names);
 
     // Unregister board
     if (board_idx != -1)
@@ -722,7 +825,13 @@ void *game_thread(void *arg)
         client_connection_t client;
 
         // Wait for client
-        sem_wait(buffer_full);
+        while (sem_wait(buffer_full) == -1 && errno == EINTR)
+        {
+        }
+        if (shutdown_requested)
+        {
+            break;
+        }
         pthread_mutex_lock(&buffer_mutex);
 
         client = connection_buffer[buffer_out];
@@ -795,6 +904,8 @@ void *host_thread(void *arg)
         return NULL;
     }
 
+    server_fd_global = server_fd;
+
     debug("Host thread started, listening on %s\n", fifo_name);
 
     // Unblock SIGUSR1
@@ -810,12 +921,23 @@ void *host_thread(void *arg)
     sigemptyset(&sa.sa_mask);
     sigaction(SIGUSR1, &sa, NULL);
 
+    struct pollfd pfd;
+    pfd.fd = server_fd;
+    pfd.events = POLLIN;
+
     while (1)
     {
-        char op_code;
-        if (read_full(server_fd, &op_code, sizeof(char)) != 0)
+        if (shutdown_requested)
+            break;
+
+        int pr = poll(&pfd, 1, 200);
+        if (pr == 0)
         {
-            debug("Host thread failed reading opcode (errno=%d)\n", errno);
+            // periodic wake-up to check shutdown flag
+            continue;
+        }
+        if (pr < 0)
+        {
             if (errno == EINTR)
             {
                 if (sigusr1_received)
@@ -825,6 +947,21 @@ void *host_thread(void *arg)
                 }
                 continue;
             }
+            perror("poll server fifo");
+            break;
+        }
+
+        if (!(pfd.revents & POLLIN))
+        {
+            continue;
+        }
+
+        char op_code;
+        if (read_full(server_fd, &op_code, sizeof(char)) != 0)
+        {
+            // If we're shutting down, allow exit even if read_full fails.
+            if (shutdown_requested)
+                break;
             perror("read server fifo");
             break;
         }
@@ -868,6 +1005,7 @@ void *host_thread(void *arg)
         }
     }
     close(server_fd);
+    server_fd_global = -1;
     return NULL;
 }
 
@@ -901,7 +1039,14 @@ int main(int argc, char **argv)
 
     // Ignore SIGPIPE so broken client pipes do not kill the server
     signal(SIGPIPE, SIG_IGN);
-    signal(SIGINT, sigint_handler);
+
+    // Use a dedicated sigwait thread for shutdown (reliable in multi-threaded programs).
+    // Block SIGINT/SIGTERM in this thread and all subsequently created threads.
+    sigset_t shutdown_set;
+    sigemptyset(&shutdown_set);
+    sigaddset(&shutdown_set, SIGINT);
+    sigaddset(&shutdown_set, SIGTERM);
+    pthread_sigmask(SIG_BLOCK, &shutdown_set, NULL);
 
     // Block SIGUSR1
     sigset_t mask;
@@ -927,6 +1072,13 @@ int main(int argc, char **argv)
     }
 
     atexit(cleanup_ipc);
+
+    pthread_t sig_tid;
+    if (pthread_create(&sig_tid, NULL, signal_wait_thread, (void *)&shutdown_set) != 0)
+    {
+        perror("pthread_create signal_wait_thread");
+        return 1;
+    }
 
     open_debug_file("debug.log");
 
@@ -962,16 +1114,23 @@ int main(int argc, char **argv)
         }
     }
 
-    // Wait for threads
-    pthread_join(host_tid, NULL);
+    // Wait for shutdown signal (SIGINT/SIGTERM)
+    pthread_join(sig_tid, NULL);
 
-    // Cleanup
+    // Wake game threads waiting on the buffer
+    for (int i = 0; i < max_games; i++)
+    {
+        sem_post(buffer_full);
+    }
+
+    pthread_join(host_tid, NULL);
+    for (int i = 0; i < max_games; i++)
+    {
+        pthread_join(game_tids[i], NULL);
+    }
+
     free(game_tids);
-    sem_close(buffer_full);
-    sem_close(buffer_empty);
-    sem_unlink(sem_full_name);
-    sem_unlink(sem_empty_name);
-    unlink(fifo_name);
+    cleanup_ipc();
     close_debug_file();
 
     return 0;

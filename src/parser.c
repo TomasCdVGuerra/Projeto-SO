@@ -9,6 +9,17 @@
 int read_level(board_t *board, char *filename, char *dirname)
 {
 
+    // Reset per-level state so files without PAC/MON don't inherit stale values
+    // from previous levels/sessions.
+    board->width = 0;
+    board->height = 0;
+    board->tempo = 0;
+    board->pacman_file[0] = '\0';
+    board->n_pacmans = 1;
+    board->n_ghosts = 0;
+    for (int i = 0; i < MAX_GHOSTS; i++)
+        board->ghosts_files[i][0] = '\0';
+
     char fullname[MAX_FILENAME];
     strcpy(fullname, dirname);
     strcat(fullname, "/");
@@ -22,10 +33,6 @@ int read_level(board_t *board, char *filename, char *dirname)
     }
 
     char command[MAX_COMMAND_LENGTH];
-
-    // Pacman is optional
-    board->pacman_file[0] = '\0';
-    board->n_pacmans = 1;
 
     strcpy(board->level_name, filename);
     *strrchr(board->level_name, '.') = '\0';
@@ -48,8 +55,10 @@ int read_level(board_t *board, char *filename, char *dirname)
             char *arg2 = strtok(NULL, " \t\n");
             if (arg1 && arg2)
             {
-                board->width = atoi(arg1);
-                board->height = atoi(arg2);
+                // Level files provide DIM as: <rows> <cols> (height then width).
+                // The grid that follows has <height> lines with <width> characters each.
+                board->height = atoi(arg1);
+                board->width = atoi(arg2);
                 debug("DIM = %d x %d\n", board->width, board->height);
             }
         }

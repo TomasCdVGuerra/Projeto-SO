@@ -1,165 +1,239 @@
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-Command: S
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=1
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=1
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=1
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=1
-Command: S
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=1
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=2
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=2
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=2
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=2
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=2
-Command: S
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=2
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=3
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=3
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=3
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=3
-Command: S
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=4
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=4
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=4
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=4
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
 Command: D
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=5
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=5
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=5
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=0
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=1
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=1
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=1
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=1
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=1
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=1
+Command: S
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=2
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=2
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=2
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=2
 Command: D
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=5
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=6
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=6
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=6
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=6
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=6
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=2
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+Command: S
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+receive_board_update: 5x5 tempo=50 victory=0 game_over=0 points=3
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=0
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=0
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=0
+Command: S
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=1
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=1
+Command: S
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=2
+Command: S
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=2
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=3
+Command: S
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=3
 Command: D
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=6
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=7
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=7
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=7
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=7
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=4
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=5
 Command: D
-receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=7
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=5
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=6
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=6
+Command: D
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=7
+Command: D
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=7
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=8
+Command: D
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=8
+Command: D
+receive_board_update: 9x7 tempo=120 victory=0 game_over=0 points=9
+receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
 Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=1
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=1
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=1
 Command: S
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=1
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=2
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=2
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=2
 Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=3
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=3
 Command: S
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=4
 Command: S
+receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=4
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=5
 Command: S
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=6
+receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=6
 Command: S
+receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=6
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=7
-Command: S
 Command: S
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=8
 Command: S
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=9
 Command: D
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=9
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=0
-Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=1
-Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=1
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=2
-Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=3
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=3
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=3
-Command: D
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=4
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=4
-Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=4
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=5
-Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=5
-Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=6
-Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=7
-Command: S
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=8
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=9
 Command: D
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=10
-Command: D
-receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=11
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=11
 Command: D
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=12
 Command: D
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=13
-Command: D
-Command: D
+Command: W
+receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=13
 receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=14
 Command: D
+receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=15
 Command: D
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=1
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-receive_board_update: 8x10 tempo=150 victory=0 game_over=0 points=0
-Client pressed 'Q', quitting game
-receive_board_update: 0x0 tempo=0 victory=0 game_over=0 points=0
-receive_board_update: read opcode returned -1 errno=9
+receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=15
+Command: D
+receive_board_update: 12x12 tempo=150 victory=0 game_over=0 points=16
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
+Command: D
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=0
+Command: S
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=1
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=1
+Command: S
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=2
+Command: S
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=2
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=3
+Command: S
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=4
+Command: S
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=4
+Command: D
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=4
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=5
+Command: D
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=5
+Command: D
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=6
+receive_board_update: 7x7 tempo=120 victory=0 game_over=0 points=7
+Command: D
+receive_board_update: 10x8 tempo=150 victory=0 game_over=0 points=0
+receive_board_update: 10x8 tempo=150 victory=0 game_over=0 points=0
+receive_board_update: 10x8 tempo=150 victory=0 game_over=0 points=0
+Command: S
+receive_board_update: 10x8 tempo=150 victory=0 game_over=0 points=1
+Command: S
+receive_board_update: 10x8 tempo=150 victory=0 game_over=0 points=1
+Command: S
+receive_board_update: 10x8 tempo=150 victory=0 game_over=0 points=2
+receive_board_update: 10x8 tempo=150 victory=0 game_over=0 points=3
+Command: S
+receive_board_update: 10x8 tempo=150 victory=0 game_over=0 points=4
+Command: S
+Command: S
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=0
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=1
+Command: S
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=2
+Command: S
+Command: S
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=3
+Command: S
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=4
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=5
+Command: S
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=6
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=6
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=6
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=7
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=8
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=9
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=10
+Command: D
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=11
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=12
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=12
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=13
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=13
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=14
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=15
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=16
+Command: D
+Command: D
+receive_board_update: 15x10 tempo=200 victory=0 game_over=0 points=17
+Command: D
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=0
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=0
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=0
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=0
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=0
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=0
+Command: S
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=0
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=1
+Command: S
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=2
+receive_board_update: 8x6 tempo=100 victory=0 game_over=0 points=2
+Command: S
+Command: S
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=0
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=1
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=1
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=1
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=1
+Command: S
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=1
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=2
+Command: S
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=2
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=2
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=2
+Command: W
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=2
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=2
+Command: W
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=3
+Command: W
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=3
+Command: D
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=3
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=4
+Command: D
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=4
+receive_board_update: 7x5 tempo=100 victory=0 game_over=0 points=5
+Command: D
+receive_board_update: 7x5 tempo=100 victory=1 game_over=1 points=5
 Returning receiver thread...

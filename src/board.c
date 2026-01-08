@@ -57,14 +57,6 @@ int move_pacman(board_t *board, int pacman_index, command_t *command)
     int new_x = pac->pos_x;
     int new_y = pac->pos_y;
 
-    // check passo
-    if (pac->waiting > 0)
-    {
-        pac->waiting -= 1;
-        return VALID_MOVE;
-    }
-    pac->waiting = pac->passo;
-
     char direction = command->command;
 
     if (direction == 'R')
@@ -131,6 +123,16 @@ int move_pacman(board_t *board, int pacman_index, command_t *command)
     {
         board->board[old_index].content = ' ';
         board->board[new_index].content = 'P';
+        if (old_index < new_index)
+        {
+            pthread_mutex_unlock(&board->board[old_index].lock);
+            pthread_mutex_unlock(&board->board[new_index].lock);
+        }
+        else
+        {
+            pthread_mutex_unlock(&board->board[new_index].lock);
+            pthread_mutex_unlock(&board->board[old_index].lock);
+        }
         return REACHED_PORTAL;
     }
 
@@ -362,13 +364,7 @@ int move_ghost(board_t *board, int ghost_index, command_t *command)
     int new_x = ghost->pos_x;
     int new_y = ghost->pos_y;
 
-    // check passo
-    if (ghost->waiting > 0)
-    {
-        ghost->waiting -= 1;
-        return VALID_MOVE;
-    }
-    ghost->waiting = ghost->passo;
+    // Ghost pacing is handled by the caller thread (sleep based on tempo/passso).
 
     char direction = command->command;
 
@@ -579,6 +575,18 @@ void unload_level(board_t *board)
     free(board->board);
     free(board->pacmans);
     free(board->ghosts);
+
+    board->board = NULL;
+    board->pacmans = NULL;
+    board->ghosts = NULL;
+    board->width = 0;
+    board->height = 0;
+    board->tempo = 0;
+    board->n_pacmans = 0;
+    board->n_ghosts = 0;
+    board->pacman_file[0] = '\0';
+    for (int i = 0; i < MAX_GHOSTS; i++)
+        board->ghosts_files[i][0] = '\0';
 }
 
 void open_debug_file(char *filename)

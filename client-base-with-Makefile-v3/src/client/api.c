@@ -52,16 +52,13 @@ int pacman_connect(char const *req_pipe_path, char const *notif_pipe_path, char 
   }
 
   // Send request
-  char op_code = OP_CODE_CONNECT;
-  char req_path_buf[40] = {0};
-  char notif_path_buf[40] = {0};
+  char msg[1 + 40 + 40] = {0};
+  msg[0] = OP_CODE_CONNECT;
+  strncpy(msg + 1, req_pipe_path, 40);
+  strncpy(msg + 1 + 40, notif_pipe_path, 40);
 
-  strncpy(req_path_buf, req_pipe_path, 40);
-  strncpy(notif_path_buf, notif_pipe_path, 40);
-
-  write(server_fd, &op_code, 1);
-  write(server_fd, req_path_buf, 40);
-  write(server_fd, notif_path_buf, 40);
+  // Single write prevents interleaving between multiple clients.
+  (void)write(server_fd, msg, sizeof(msg));
   close(server_fd);
 
   // Open pipes
@@ -118,9 +115,8 @@ void pacman_play(char command)
 {
   if (session.id == -1)
     return;
-  char op_code = OP_CODE_PLAY;
-  write(session.req_pipe, &op_code, 1);
-  write(session.req_pipe, &command, 1);
+  char msg[2] = {OP_CODE_PLAY, command};
+  (void)write(session.req_pipe, msg, sizeof(msg));
 }
 
 int pacman_disconnect()

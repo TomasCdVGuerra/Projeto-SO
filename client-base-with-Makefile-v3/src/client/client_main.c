@@ -24,10 +24,9 @@ static void *receiver_thread(void *arg)
 
     while (true)
     {
+        Board received = receive_board_update();
 
-        Board board = receive_board_update();
-
-        if (!board.data || board.game_over == 1)
+        if (!received.data)
         {
             pthread_mutex_lock(&mutex);
             stop_execution = true;
@@ -36,13 +35,22 @@ static void *receiver_thread(void *arg)
         }
 
         pthread_mutex_lock(&mutex);
-        tempo = board.tempo;
+        tempo = received.tempo;
         pthread_mutex_unlock(&mutex);
 
+        // Always render the most recent state, including the final GAME OVER/VICTORY frame.
         pthread_mutex_lock(&screen_mutex);
-        draw_board_client(board);
+        draw_board_client(received);
         refresh_screen();
         pthread_mutex_unlock(&screen_mutex);
+
+        if (received.game_over == 1 || received.victory == 1)
+        {
+            pthread_mutex_lock(&mutex);
+            stop_execution = true;
+            pthread_mutex_unlock(&mutex);
+            break;
+        }
     }
 
     debug("Returning receiver thread...\n");
