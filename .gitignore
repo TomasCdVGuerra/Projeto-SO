@@ -12,6 +12,10 @@ bin/
 # macOS
 .DS_Store
 
+# Runtime debug logs
+debug.log
+client-debug.log
+
 
 
 #other

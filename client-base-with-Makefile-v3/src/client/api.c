@@ -25,20 +25,50 @@ static struct Session session = {.id = -1};
 
 int pacman_connect(char const *req_pipe_path, char const *notif_pipe_path, char const *server_pipe_path)
 {
+  // If paths collide (can happen due to MAX_PIPE_PATH_LENGTH truncation), FIFO creation will fail.
+  if (strncmp(req_pipe_path, notif_pipe_path, MAX_PIPE_PATH_LENGTH) == 0)
+  {
+    fprintf(stderr,
+            "Error: request and notification FIFO paths collide (client id too long?).\n"
+            "req='%s' notif='%s'\n",
+            req_pipe_path,
+            notif_pipe_path);
+    return 1;
+  }
+
   // Create FIFOs
   unlink(req_pipe_path);
   unlink(notif_pipe_path);
 
   if (mkfifo(req_pipe_path, 0666) == -1)
   {
-    perror("mkfifo req");
-    return 1;
+    if (errno != EEXIST)
+    {
+      perror("mkfifo req");
+      return 1;
+    }
+    struct stat st;
+    if (stat(req_pipe_path, &st) != 0 || !S_ISFIFO(st.st_mode))
+    {
+      perror("mkfifo req (exists but not fifo)");
+      return 1;
+    }
   }
   if (mkfifo(notif_pipe_path, 0666) == -1)
   {
-    perror("mkfifo notif");
-    unlink(req_pipe_path);
-    return 1;
+    if (errno != EEXIST)
+    {
+      perror("mkfifo notif");
+      unlink(req_pipe_path);
+      return 1;
+    }
+    struct stat st;
+    if (stat(notif_pipe_path, &st) != 0 || !S_ISFIFO(st.st_mode))
+    {
+      perror("mkfifo notif (exists but not fifo)");
+      unlink(req_pipe_path);
+      return 1;
+    }
   }
 
   // Open server pipe

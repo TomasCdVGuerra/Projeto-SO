@@ -1027,7 +1027,31 @@ int main(int argc, char **argv)
     // Create FIFO
     if (mkfifo(fifo_name, 0666) == -1)
     {
-        if (errno != EEXIST)
+        if (errno == EEXIST)
+        {
+            // If something already exists at this path, ensure it's actually a FIFO.
+            // On some systems this path may be left behind as a regular file.
+            struct stat st;
+            if (stat(fifo_name, &st) != 0)
+            {
+                perror("stat fifo");
+                return 1;
+            }
+            if (!S_ISFIFO(st.st_mode))
+            {
+                if (unlink(fifo_name) != 0)
+                {
+                    perror("unlink non-fifo");
+                    return 1;
+                }
+                if (mkfifo(fifo_name, 0666) == -1)
+                {
+                    perror("mkfifo");
+                    return 1;
+                }
+            }
+        }
+        else
         {
             perror("mkfifo");
             return 1;
