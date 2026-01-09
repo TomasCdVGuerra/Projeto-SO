@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <signal.h>
 
 Board board;
 bool stop_execution = false;
@@ -71,6 +72,10 @@ int main(int argc, char *argv[])
     const char *register_pipe = argv[2];
     const char *commands_file = (argc == 4) ? argv[3] : NULL;
 
+    // If the server closes the request FIFO (e.g., game ended) a write() would
+    // normally raise SIGPIPE and kill the client abruptly, skipping ncurses cleanup.
+    signal(SIGPIPE, SIG_IGN);
+
     FILE *cmd_fp = NULL;
     if (commands_file)
     {
@@ -91,7 +96,9 @@ int main(int argc, char *argv[])
     snprintf(notif_pipe_path, MAX_PIPE_PATH_LENGTH,
              "/tmp/%s_notification", client_id);
 
-    open_debug_file("client-debug.log");
+    char debug_name[128];
+    snprintf(debug_name, sizeof(debug_name), "client-%s-debug.log", client_id);
+    open_debug_file(debug_name);
 
     if (pacman_connect(req_pipe_path, notif_pipe_path, register_pipe) != 0)
     {
@@ -181,7 +188,11 @@ int main(int argc, char *argv[])
 
         debug("Command: %c\n", command);
 
-        pacman_play(command);
+        if (pacman_play(command) != 0)
+        {
+            debug("pacman_play failed (server closed pipe?) -> exiting input loop\n");
+            break;
+        }
     }
 
     pacman_disconnect();

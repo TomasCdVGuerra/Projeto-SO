@@ -141,12 +141,17 @@ int pacman_connect(char const *req_pipe_path, char const *notif_pipe_path, char 
   return 0;
 }
 
-void pacman_play(char command)
+int pacman_play(char command)
 {
   if (session.id == -1)
-    return;
+    return -1;
   char msg[2] = {OP_CODE_PLAY, command};
-  (void)write(session.req_pipe, msg, sizeof(msg));
+  ssize_t w = write(session.req_pipe, msg, sizeof(msg));
+  if (w != (ssize_t)sizeof(msg))
+  {
+    return -1;
+  }
+  return 0;
 }
 
 int pacman_disconnect()

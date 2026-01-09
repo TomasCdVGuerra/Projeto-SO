@@ -8,7 +8,10 @@ FILE *debugfile;
 
 void open_debug_file(char *filename)
 {
-    debugfile = fopen(filename, "w");
+    // Append mode is important when multiple client processes run concurrently.
+    // Using "w" would truncate the file and can create NUL-filled gaps if another
+    // process continues writing at an old file offset.
+    debugfile = fopen(filename, "a");
     if (!debugfile)
     {
         return;

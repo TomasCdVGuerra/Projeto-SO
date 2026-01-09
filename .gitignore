@@ -15,6 +15,7 @@ bin/
 # Runtime debug logs
 debug.log
 client-debug.log
+client-*-debug.log
 
 
 
