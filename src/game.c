@@ -813,6 +813,9 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd, const char
 
             if (result == NEXT_LEVEL)
             {
+                // Preserve score when advancing to the next level.
+                accumulated_points = (game_board.n_pacmans > 0) ? game_board.pacmans[0].points : accumulated_points;
+
                 // Portal reached: advance level, or if this was the last level, end with victory.
                 if (level_i + 1 >= lvl_count)
                 {

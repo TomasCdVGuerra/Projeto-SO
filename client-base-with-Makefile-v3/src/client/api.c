@@ -88,7 +88,15 @@ int pacman_connect(char const *req_pipe_path, char const *notif_pipe_path, char 
   strncpy(msg + 1 + 40, notif_pipe_path, 40);
 
   // Single write prevents interleaving between multiple clients.
-  (void)write(server_fd, msg, sizeof(msg));
+  ssize_t written = write(server_fd, msg, sizeof(msg));
+  if (written != sizeof(msg))
+  {
+    perror("write connect request");
+    close(server_fd);
+    unlink(req_pipe_path);
+    unlink(notif_pipe_path);
+    return 1;
+  }
   close(server_fd);
 
   // Open pipes
@@ -151,7 +159,10 @@ int pacman_play(char command)
   {
     return -1;
   }
-  return 0;
+  if (write(session.req_pipe, &op_code, 1) == -1)
+  {
+    perror("pacman_disconnect write");
+  }
 }
 
 int pacman_disconnect()
@@ -191,39 +202,49 @@ Board receive_board_update(void)
   {
     debug("receive_board_update: unexpected opcode=%d\n", (int)op_code);
     return board;
-  }
-
-  read(session.notif_pipe, &board.width, sizeof(int));
-  read(session.notif_pipe, &board.height, sizeof(int));
-  read(session.notif_pipe, &board.tempo, sizeof(int));
-  read(session.notif_pipe, &board.victory, sizeof(int));
-  read(session.notif_pipe, &board.game_over, sizeof(int));
-  read(session.notif_pipe, &board.accumulated_points, sizeof(int));
-
-  debug(
-      "receive_board_update: %dx%d tempo=%d victory=%d game_over=%d points=%d\n",
-      board.width,
-      board.height,
-      board.tempo,
-      board.victory,
-      board.game_over,
-      board.accumulated_points);
-
-  size_t needed = (size_t)board.width * (size_t)board.height;
-  if (needed > session.board_buf_cap)
-  {
-    char *newbuf = realloc(session.board_buf, needed);
-    if (!newbuf)
-    {
-      board.game_over = 1;
+    if (read(session.notif_pipe, &board.width, sizeof(int)) != sizeof(int))
       return board;
+    if (read(session.notif_pipe, &board.height, sizeof(int)) != sizeof(int))
+      return board;
+    if (read(session.notif_pipe, &board.tempo, sizeof(int)) != sizeof(int))
+      return board;
+    if (read(session.notif_pipe, &board.victory, sizeof(int)) != sizeof(int))
+      return board;
+    if (read(session.notif_pipe, &board.game_over, sizeof(int)) != sizeof(int))
+      return board;
+    if (read(session.notif_pipe, &board.accumulated_points, sizeof(int)) != sizeof(int))
+      return board
+          read(session.notif_pipe, &board.game_over, sizeof(int));
+    read(session.notif_pipe, &board.accumulated_points, sizeof(int));
+
+    debug(
+        "receive_board_update: %dx%d tempo=%d victory=%d game_over=%d points=%d\n",
+        board.width,
+        board.height,
+        board.tempo,
+        board.victory,
+        board.game_over,
+        board.accumulated_points);
+
+    size_t needed = (size_t)board.width * (size_t)board.height;
+    if (needed > session.board_buf_cap)
+    {
+      char *newbuf = realloc(session.board_buf, needed);
+      if (!newbuf)
+      {
+        board.game_over = 1;
+        return board;
+      }
+      session.board_buf = newbuf;
+      session.board_buf_cap = needed;
     }
-    session.board_buf = newbuf;
-    session.board_buf_cap = needed;
+    if (read(session.notif_pipe, board.data, board.width * board.height) != (ssize_t)(board.width * board.height))
+    {
+      debug("receive_board_update: incomplete board data read\n");
+      // Consider marking invalid or game over?
+    }
+    board.data = session.board_buf;
+    read(session.notif_pipe, board.data, board.width * board.height);
+
+    return board;
   }
-
-  board.data = session.board_buf;
-  read(session.notif_pipe, board.data, board.width * board.height);
-
-  return board;
-}
