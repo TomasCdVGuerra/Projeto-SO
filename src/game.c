@@ -37,12 +37,14 @@ static inline int entity_delay_ms(int tempo_ms, int passo)
 #define CREATE_BACKUP 4
 
 #define MAX_PIPE_PATH_LENGTH 40
+#define MAX_CLIENT_ID_LENGTH 32
 #define BUFFER_SIZE 10
 
 typedef struct
 {
     char req_pipe_path[MAX_PIPE_PATH_LENGTH];
     char notif_pipe_path[MAX_PIPE_PATH_LENGTH];
+    char client_id[MAX_CLIENT_ID_LENGTH];
 } client_connection_t;
 
 client_connection_t connection_buffer[BUFFER_SIZE];
@@ -475,6 +477,7 @@ void *ghost_thread(void *arg)
 }
 #define MAX_ACTIVE_GAMES 100
 board_t *active_boards[MAX_ACTIVE_GAMES];
+static char active_client_ids[MAX_ACTIVE_GAMES][MAX_CLIENT_ID_LENGTH];
 pthread_mutex_t active_boards_mutex = PTHREAD_MUTEX_INITIALIZER;
 volatile sig_atomic_t sigusr1_received = 0;
 
@@ -486,49 +489,77 @@ void sigusr1_handler(int signo)
 
 typedef struct
 {
-    int id;
+    char id[MAX_CLIENT_ID_LENGTH];
     int score;
 } score_entry_t;
 
 int compare_scores(const void *a, const void *b)
 {
-    score_entry_t *sa = (score_entry_t *)a;
-    score_entry_t *sb = (score_entry_t *)b;
-    return sb->score - sa->score; // Descending
+    const score_entry_t *sa = (const score_entry_t *)a;
+    const score_entry_t *sb = (const score_entry_t *)b;
+    if (sb->score != sa->score)
+        return sb->score - sa->score; // Descending
+    return strcmp(sa->id, sb->id);
+}
+
+static int extract_client_id_from_req_path(const char *req_path, char *out, size_t out_sz)
+{
+    if (!req_path || !out || out_sz == 0)
+        return -1;
+    out[0] = '\0';
+
+    const char *base = strrchr(req_path, '/');
+    base = base ? (base + 1) : req_path;
+
+    const char *suffix = "_request";
+    size_t base_len = strlen(base);
+    size_t suffix_len = strlen(suffix);
+    if (base_len <= suffix_len)
+        return -1;
+    if (strcmp(base + (base_len - suffix_len), suffix) != 0)
+        return -1;
+
+    size_t id_len = base_len - suffix_len;
+    if (id_len == 0)
+        return -1;
+    if (id_len >= out_sz)
+        id_len = out_sz - 1;
+
+    memcpy(out, base, id_len);
+    out[id_len] = '\0';
+    return 0;
 }
 
 void log_top_scores()
 {
-    // Snapshot pointers under the mutex, then read per-board state under each board lock.
-    board_t *boards[MAX_ACTIVE_GAMES];
-    pthread_mutex_lock(&active_boards_mutex);
-    for (int i = 0; i < MAX_ACTIVE_GAMES; i++)
-    {
-        boards[i] = active_boards[i];
-    }
-    pthread_mutex_unlock(&active_boards_mutex);
-
     score_entry_t scores[MAX_ACTIVE_GAMES];
     int count = 0;
 
+    // Hold the mutex while reading active pointers so an unregister can't invalidate
+    // stack-allocated boards while we're snapshotting/reading.
+    pthread_mutex_lock(&active_boards_mutex);
     for (int i = 0; i < MAX_ACTIVE_GAMES; i++)
     {
-        if (boards[i] != NULL)
-        {
-            int points = 0;
-            pthread_rwlock_rdlock(&boards[i]->state_lock);
-            if (boards[i]->n_pacmans > 0)
-            {
-                points = boards[i]->pacmans[0].points;
-            }
-            pthread_rwlock_unlock(&boards[i]->state_lock);
+        if (active_boards[i] == NULL)
+            continue;
 
-            // We don't currently store a client id in board_t; use slot index as a stable id.
-            scores[count].id = i;
-            scores[count].score = points;
-            count++;
+        int points = 0;
+        pthread_rwlock_rdlock(&active_boards[i]->state_lock);
+        if (active_boards[i]->n_pacmans > 0)
+            points = active_boards[i]->pacmans[0].points;
+        pthread_rwlock_unlock(&active_boards[i]->state_lock);
+
+        strncpy(scores[count].id, active_client_ids[i], sizeof(scores[count].id) - 1);
+        scores[count].id[sizeof(scores[count].id) - 1] = '\0';
+        if (scores[count].id[0] == '\0')
+        {
+            // Fallback: use slot index.
+            snprintf(scores[count].id, sizeof(scores[count].id), "%d", i);
         }
+        scores[count].score = points;
+        count++;
     }
+    pthread_mutex_unlock(&active_boards_mutex);
 
     qsort(scores, count, sizeof(score_entry_t), compare_scores);
 
@@ -537,7 +568,7 @@ void log_top_scores()
     {
         for (int i = 0; i < count && i < 5; i++)
         {
-            fprintf(f, "Client %d: %d\n", scores[i].id, scores[i].score);
+            fprintf(f, "%s %d\n", scores[i].id, scores[i].score);
         }
         fclose(f);
         debug("Logged top scores to top_scores.txt\n");
@@ -555,7 +586,7 @@ static int cmp_level_names(const void *a, const void *b)
     return strcmp(sa, sb);
 }
 
-void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
+void run_game_session(char *level_dir_name, int req_fd, int notif_fd, const char *client_id)
 {
     debug("run_game_session: entered with dir=%s, req_fd=%d, notif_fd=%d\n", level_dir_name, req_fd, notif_fd);
     if (shutdown_requested)
@@ -622,6 +653,15 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
         if (active_boards[i] == NULL)
         {
             active_boards[i] = &game_board;
+            if (client_id)
+            {
+                strncpy(active_client_ids[i], client_id, sizeof(active_client_ids[i]) - 1);
+                active_client_ids[i][sizeof(active_client_ids[i]) - 1] = '\0';
+            }
+            else
+            {
+                active_client_ids[i][0] = '\0';
+            }
             board_idx = i;
             break;
         }
@@ -812,6 +852,7 @@ void run_game_session(char *level_dir_name, int req_fd, int notif_fd)
     {
         pthread_mutex_lock(&active_boards_mutex);
         active_boards[board_idx] = NULL;
+        active_client_ids[board_idx][0] = '\0';
         pthread_mutex_unlock(&active_boards_mutex);
     }
 }
@@ -884,7 +925,7 @@ void *game_thread(void *arg)
 
         debug("Starting game session for client %s\n", client.req_pipe_path);
         debug("Calling run_game_session with levels_dir=%s\n", level_dir_name);
-        run_game_session(level_dir_name, req_fd, notif_fd);
+        run_game_session(level_dir_name, req_fd, notif_fd, client.client_id);
         debug("Finished game session for client %s\n", client.req_pipe_path);
 
         close(req_fd);
@@ -927,6 +968,11 @@ void *host_thread(void *arg)
 
     while (1)
     {
+        if (sigusr1_received)
+        {
+            sigusr1_received = 0;
+            log_top_scores();
+        }
         if (shutdown_requested)
             break;
 
@@ -985,6 +1031,13 @@ void *host_thread(void *arg)
             }
 
             debug("Received connection request: %s, %s\n", req.req_pipe_path, req.notif_pipe_path);
+
+            // Extract client id from req pipe path: /tmp/<id>_request
+            if (extract_client_id_from_req_path(req.req_pipe_path, req.client_id, sizeof(req.client_id)) != 0)
+            {
+                req.client_id[0] = '\0';
+            }
+            debug("Client id parsed as: %s\n", req.client_id);
 
             // Add to buffer
             sem_wait(buffer_empty);
